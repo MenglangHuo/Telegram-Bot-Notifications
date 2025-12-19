@@ -227,9 +227,13 @@ public class NotificationConsumer {
         <b>%s</b>
 
         👤 <b>Employee:</b> %s
+        
         📅 <b>Date:</b> %s
+        
         🕒 <b>Time:</b> %s
+        
         📍 <b>Location:</b> %s
+        
         🔐 <b>Method:</b> %s
 
         Have a productive day! 🚀
@@ -283,13 +287,6 @@ public class NotificationConsumer {
     private String formatChannelMessage(NotificationChannel n) {
         StringBuilder message = new StringBuilder();
 
-        // Add priority indicator
-        if (n.getPriority() == NotificationPriority.URGENT) {
-            message.append("🚨 <b>URGENT</b> 🚨\n\n");
-        } else if (n.getPriority() == NotificationPriority.HIGH) {
-            message.append("⚠️ <b>HIGH PRIORITY</b> ⚠️\n\n");
-        }
-
         // Add title
         if (n.getTitle() != null) {
             message.append("<b>").append(n.getTitle()).append("</b>\n\n");
@@ -307,20 +304,6 @@ public class NotificationConsumer {
         return message.toString();
     }
 
-//    private String getScopeInfo(NotificationChannel n) {
-//        if (n.getDepartment() != null) {
-//            return "📍 Department: " + n.getDepartment().getDepartmentName();
-//        } else if (n.getDivision() != null) {
-//            return "📍 Division: " + n.getDivision().getDivisionName();
-//        } else if (n.getOrganization() != null) {
-//            return "📍 Organization: " + n.getOrganization().getOrganizationName();
-//        }
-//        return null;
-//    }
-
-    /**
-     * ✅ FIX: Get bot for subscription with fallback
-     */
     private TelegramBot getBotForSubscription(Subscription subscription) {
         return telegramBotService.getBotForSubscription(subscription.getId());
     }

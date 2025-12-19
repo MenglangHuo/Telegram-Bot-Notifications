@@ -19,8 +19,7 @@ import java.time.Instant;
                 @UniqueConstraint(columnNames = {"partner_id", "email"})
         },
         indexes = {
-                @Index(name = "idx_employee_telegram", columnList = "telegram_user_id"),
-                @Index(name = "idx_employee_org_dept", columnList = "organization_id,department_id")
+                @Index(name = "idx_employee_telegram", columnList = "telegram_user_id")
         })
 public class Employee extends SoftDeletableAuditable<Long> {
 

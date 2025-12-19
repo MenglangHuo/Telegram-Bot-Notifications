@@ -1,7 +1,6 @@
 package com.bronx.telegram.notification.service.impl;
 import com.bronx.telegram.notification.model.entity.TelegramBot;
 import com.bronx.telegram.notification.model.enumz.BotStatus;
-import com.bronx.telegram.notification.repository.SubscriptionRepository;
 import com.bronx.telegram.notification.repository.TelegramBotRepository;
 import com.bronx.telegram.notification.service.TelegramBotService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -104,7 +103,6 @@ public class TelegramBotServiceImpl implements TelegramBotService {
             JsonNode botInfo = client.verifyToken();
             if (botInfo == null) {
                 log.error("❌ Invalid token for bot {}", bot.getBotUsername());
-//                bot.setStatus(BotStatus.ERROR);
                 bot.setLastErrorMessage("Invalid bot token");
                 bot.setLastErrorAt(Instant.now());
                 botRepository.save(bot);
@@ -143,7 +141,6 @@ public class TelegramBotServiceImpl implements TelegramBotService {
                 }
             } else {
                 bot.setWebhookVerified(false);
-//                bot.setStatus(BotStatus.ERROR);
                 bot.setLastErrorMessage("Failed to set webhook");
                 bot.setLastErrorAt(Instant.now());
                 log.error("❌ Failed to set webhook for bot {}", bot.getBotUsername());
@@ -182,12 +179,6 @@ public class TelegramBotServiceImpl implements TelegramBotService {
     public TelegramBot findBotForCompany(Long companyId) {
         return null;
     }
-//
-//    private TelegramBot findBotForCompany(Long companyId) {
-//        return botRepository.findFirstByCompanyIdAndStatus(companyId, BotStatus.ACTIVE)
-//                .orElseThrow(() -> new RuntimeException("No active bot found for company " + companyId));
-//    }
-
     public TelegramBotClient getBotClient(Long botId) {
         return botClients.get(botId);
     }
@@ -227,9 +218,7 @@ public class TelegramBotServiceImpl implements TelegramBotService {
             registerBot(bot);
         }
     }
-    /**
-     * ✅ NEW: Get bot for subscription
-     */
+
     public TelegramBot getBotForSubscription(Long subscriptionId) {
         return botRepository
                 .findFirstBySubscriptionIdAndStatus(subscriptionId, BotStatus.ACTIVE)
@@ -238,16 +227,8 @@ public class TelegramBotServiceImpl implements TelegramBotService {
     private void updateBotError(Long botId, String errorMessage) {
         try {
             botRepository.findById(botId).ifPresent(bot -> {
-//                bot.setErrorCount(bot.getErrorCount() + 1);
                 bot.setLastErrorMessage(errorMessage);
                 bot.setLastErrorAt(Instant.now());
-
-                // Suspend bot if too many errors
-//                if (bot.getErrorCount() > 20) {
-//                    bot.setStatus(BotStatus.ERROR);
-//                    log.error("Bot {} suspended due to too many errors", bot.getBotUsername());
-//                }
-
                 botRepository.save(bot);
             });
         } catch (Exception e) {
@@ -288,9 +269,6 @@ public class TelegramBotServiceImpl implements TelegramBotService {
         }
     }
 
-    /**
-     * ✅ ENHANCED: Send channel message with pin support
-     */
     public boolean sendChannelMessage(
             Long botId,
             String chatId,

@@ -1,11 +1,9 @@
 package com.bronx.telegram.notification.model.entity;
 import com.bronx.telegram.notification.model.audit.SoftDeletableAuditable;
-import com.bronx.telegram.notification.model.enumz.DeliveryChannel;
-import com.bronx.telegram.notification.model.enumz.NotificationEventType;
-import com.bronx.telegram.notification.model.enumz.NotificationPriority;
-import com.bronx.telegram.notification.model.enumz.NotificationStatus;
+import com.bronx.telegram.notification.model.enumz.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -15,6 +13,7 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
@@ -48,6 +47,13 @@ public abstract class Notification extends SoftDeletableAuditable<Long> implemen
     @Column(name = "method",length = 50)
     private String method; //QR , FACE_ID, ...
 
+    @Column(name = "is_own_custom")
+    private boolean isOwnCustom=false;
+
+    @Column(name = "parse_mode",length = 30)
+    @Enumerated(EnumType.STRING)
+    private ParseMode parseMode;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "content", columnDefinition = "jsonb")
     private JsonNode content; // Additional structured data
@@ -63,13 +69,6 @@ public abstract class Notification extends SoftDeletableAuditable<Long> implemen
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private NotificationStatus status = NotificationStatus.QUEUED;
-
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "notification_channels_list",
-            joinColumns = @JoinColumn(name = "notification_id"))
-    @Column(name = "channel")
-    @Enumerated(EnumType.STRING)
-    private Set<DeliveryChannel> channels = new HashSet<>(Arrays.asList(DeliveryChannel.TELEGRAM));
 
     // Retry tracking
     @Column(name = "retry_count", nullable = false)
