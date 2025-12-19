@@ -29,17 +29,17 @@ public abstract class Notification extends SoftDeletableAuditable<Long> implemen
     @JoinColumn(name = "organization_id")
     private Organization organization;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "subscription_id", nullable = false)
-//    private Subscription subscription;
-//
-//    @ManyToOne
-//    @JoinColumn(name = "division_id")
-//    private Division division;
-//
-//    @ManyToOne
-//    @JoinColumn(name = "department_id")
-//    private Department department;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subscription_id", nullable = false)
+    private Subscription subscription;
+
+    @ManyToOne
+    @JoinColumn(name = "division_id")
+    private Division division;
+
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
 
 //    @ManyToOne(fetch = FetchType.LAZY)
 //    @JoinColumn(name = "telegram_bot_id", nullable = false)
