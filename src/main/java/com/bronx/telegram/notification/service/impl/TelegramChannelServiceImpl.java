@@ -101,23 +101,19 @@ public class TelegramChannelServiceImpl implements TelegramChannelService {
             channel.setChatId(chatId);
             channel.setChatType(ChartType.valueOf(chatType.toUpperCase()));
             channel.setChatName(chatTitle);
-            channel.setIsBotAdmin(isBotAdmin);
             channel.setCanPinMessages(canPinMessages);
             channel.setChannelStatus(ChannelStatus.ACTIVE);
             channel.setVerifiedAt(Instant.now());
 
             // Set scope based on subscription
             Subscription subscription = bot.getSubscription();
-            channel.setOrganization(subscription.getOrganization());
-            channel.setDivision(subscription.getDivision());
-            channel.setDepartment(subscription.getDepartment());
+            channel.setOrganizationUnit(subscription.getScope());
 
             channelRepository.save(channel);
 
-            log.info("✅ Registered {} '{}' for subscription {} (scope: {})",
+            log.info("✅ Registered {} '{}' for subscription {}",
                     chatType, chatTitle,
-                    subscription.getId(),
-                    subscription.getScopeLevel());
+                    subscription.getId());
 
         } catch (Exception e) {
             log.error("Failed to handle add new chat", e);
@@ -127,21 +123,14 @@ public class TelegramChannelServiceImpl implements TelegramChannelService {
 
     @Override
     public List<TelegramChannel> getChannelsForScope(Subscription subscription) {
-        return switch (subscription.getSubscriptionType()) {
-            case ORGANIZATION -> channelRepository
-                    .findByOrganizationIdAndChannelStatus(
-                            subscription.getOrganization().getId(),
-                            ChannelStatus.ACTIVE);
-            case DIVISION -> channelRepository
-                    .findByDivisionIdAndChannelStatus(
-                            subscription.getDivision().getId(),
-                            ChannelStatus.ACTIVE);
-            case DEPARTMENT -> channelRepository
-                    .findByDepartmentIdAndChannelStatus(
-                            subscription.getDepartment().getId(),
-                            ChannelStatus.ACTIVE);
-            case UNKNOWN -> null;
-        };
+        if (subscription.getScope() == null) {
+            return channelRepository.findByCompanyIdAndChannelStatus(
+                    subscription.getCompany().getId(), ChannelStatus.ACTIVE);
+        } else {
+            // Find channels in scope and descendants
+            return channelRepository.findByPathStartingWithAndChannelStatus(
+                    subscription.getScope().getPath(), ChannelStatus.ACTIVE);
+        }
     }
     private void handleBotRemoved(TelegramBot bot, String chatId) {
         channelRepository.findByBotIdAndChatId(bot.getId(), chatId)
@@ -152,5 +141,42 @@ public class TelegramChannelServiceImpl implements TelegramChannelService {
                     log.info("Marked channel {} as inactive", channel.getChatName());
                 });
     }
+
+//    @Override
+//    public List<TelegramChannel> getChannelsForScope(Subscription subscription) {
+//        if (subscription.getScope() == null) {
+//            // Company-wide subscription - get all channels for the company
+//            return channelRepository.findBySubscriptionIdAndChannelStatus(
+//                    subscription.getId(), ChannelStatus.ACTIVE);
+//        }
+//
+//        // Get channels for specific org unit
+//        return channelRepository.findByOrganizationUnitIdAndChannelStatus(
+//                subscription.getScope().getId(), ChannelStatus.ACTIVE);
+//    }
+//
+//    public List<TelegramChannel> getChannelsForOrgUnitHierarchy(OrganizationUnit orgUnit) {
+//        List<TelegramChannel> channels = new ArrayList<>();
+//
+//        // Get channels for this org unit and all parent units
+//        OrganizationUnit currentUnit = orgUnit;
+//        while (currentUnit != null) {
+//            channels.addAll(channelRepository.findByOrganizationUnitIdAndChannelStatus(
+//                    currentUnit.getId(), ChannelStatus.ACTIVE));
+//            currentUnit = currentUnit.getParent();
+//        }
+//
+//        return channels;
+//    }
+//
+//    private void handleBotRemoved(TelegramBot bot, String chatId) {
+//        channelRepository.findByBotIdAndChatId(bot.getId(), chatId)
+//                .ifPresent(channel -> {
+//                    channel.setChannelStatus(ChannelStatus.INACTIVE);
+//                    channel.setDeletedAt(Instant.now());
+//                    channelRepository.save(channel);
+//                    log.info("🚫 Marked channel {} as inactive", channel.getChatName());
+//                });
+//    }
 }
 

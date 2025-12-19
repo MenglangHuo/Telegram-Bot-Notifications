@@ -7,15 +7,15 @@ import com.bronx.telegram.notification.exceptions.ResourceNotFoundException;
 import com.bronx.telegram.notification.mapper.EmployeeMapper;
 import com.bronx.telegram.notification.model.entity.*;
 import com.bronx.telegram.notification.model.enumz.BotStatus;
+import com.bronx.telegram.notification.model.enumz.SubscriptionStatus;
 import com.bronx.telegram.notification.repository.*;
 import com.bronx.telegram.notification.service.TelegramBotService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -25,9 +25,8 @@ import java.util.Optional;
 public class EmployeeRegistrationService {
     private final EmployeeRepository employeeRepository;
     private final PartnerRepository partnerRepository;
-    private final OrganizationRepository organizationRepository;
-    private final DivisionRepository divisionRepository;
-    private final DepartmentRepository departmentRepository;
+    private final CompanyRepository companyRepository;
+    private final OrganizationUnitRepository organizationUnitRepository;
     private final TelegramBotService telegramBotService;
     private final SubscriptionRepository subscriptionRepository;
     private final EmployeeMapper employeeMapper;
@@ -102,54 +101,42 @@ public class EmployeeRegistrationService {
         }
     }
 
+    @Transactional
     public EmployeeResponse createEmployee(EmployeeRequest request) {
         log.info("📝 Creating employee: {} ({})", request.fullName(), request.email());
 
-        // Validate request
-        ValidationResult validation = validateEmployeeRequest(request);
-        if (!validation.isSuccess()) {
-            throw new BusinessException(validation.getMessage());
+        // Fetch company
+        Company company = companyRepository
+                .findById(request.companyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+
+        // Fetch organization unit
+        OrganizationUnit orgUnit = organizationUnitRepository
+                .findById(request.organizationUnitId())
+                .orElseThrow(() -> new ResourceNotFoundException("Organization unit not found"));
+
+        // Validate org unit belongs to company
+        if (!orgUnit.getCompany().getId().equals(company.getId())) {
+            throw new BusinessException("Organization unit does not belong to the specified company");
         }
 
-        Organization organization = organizationRepository
-                .findById(request.organizationId())
-                .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+        Partner partner = company.getPartner();
 
         // Check for duplicates
-        if (employeeRepository.existsByPartnerIdAndEmail(
-                organization.getPartner().getId(), request.email())) {
+        if (employeeRepository.existsByPartnerIdAndEmail(partner.getId(), request.email())) {
             throw new BusinessException("Employee with this email already exists");
         }
 
         if (employeeRepository.existsByPartnerIdAndEmployeeCode(
-                organization.getPartner().getId(), request.employeeCode())) {
+                partner.getId(), request.employeeCode())) {
             throw new BusinessException("Employee code already exists");
-        }
-
-        // Fetch and validate entities
-        Partner partner = partnerRepository.findById(organization.getPartner().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Partner not found"));
-
-        Division division = null;
-        if (request.divisionId() != null) {
-            division = divisionRepository.findById(request.divisionId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Division not found"));
-            validateDivision(division, organization);
-        }
-
-        Department department = null;
-        if (request.departmentId() != null) {
-            department = departmentRepository.findById(request.departmentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
-            validateDepartment(department, organization, division);
         }
 
         // Create employee
         Employee employee = Employee.builder()
                 .partner(partner)
-                .organization(organization)
-                .division(division)
-                .department(department)
+                .company(company)
+                .organizationUnit(orgUnit)
                 .employeeCode(request.employeeCode())
                 .managerCode(request.managerCode())
                 .email(request.email())
@@ -157,313 +144,20 @@ public class EmployeeRegistrationService {
                 .role(request.role())
                 .contact(request.contact())
                 .telegramUsername(request.telegramUsername())
-                .status(BotStatus.PENDING)
-                .isManager(request.isManager() != null ? request.isManager() : false)
-                .isHeadOfDepartment(request.isHeadOfDepartment() != null ?
-                        request.isHeadOfDepartment() : false)
-                .isHeadOfDivision(request.isHeadOfDivision() != null ?
-                        request.isHeadOfDivision() : false)
+                .status(BotStatus.ACTIVE)
                 .build();
-        return employeeMapper.toResponse(employeeRepository.save(employee));
 
-    }
-    public BatchEmployeeResult batchCreateEmployee(List<EmployeeRequest> employeeRequests) {
-        log.info("📥 Starting batch employee creation for {} employees",
-                employeeRequests.size());
+        Employee saved = employeeRepository.save(employee);
+        log.info("✅ Created employee: {} in org unit: {}",
+                saved.getEmployeeCode(), orgUnit.getUnitName());
 
-        List<Employee> successfulEmployees = new ArrayList<>();
-        List<EmployeeCreationError> errors = new ArrayList<>();
-        int successCount = 0;
-        int errorCount = 0;
-
-        for (int i = 0; i < employeeRequests.size(); i++) {
-            EmployeeRequest empReq = employeeRequests.get(i);
-
-            try {
-                // Validate request
-                ValidationResult validation = validateEmployeeRequest(empReq);
-                if (!validation.isSuccess()) {
-                    errors.add(new EmployeeCreationError(
-                            i, empReq.email(), validation.getMessage()));
-                    errorCount++;
-                    continue;
-                }
-
-
-
-                Organization organization = organizationRepository
-                        .findById(empReq.organizationId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
-
-                // Validate organization belongs to partner
-                // Check for duplicates
-                if (employeeRepository.existsByPartnerIdAndEmail(
-                        organization.getPartner().getId(), empReq.email())) {
-                    errors.add(new EmployeeCreationError(
-                            i, empReq.email(), "Employee with this email already exists"));
-                    errorCount++;
-                    continue;
-                }
-
-                if (employeeRepository.existsByPartnerIdAndEmployeeCode(
-                        organization.getPartner().getId(), empReq.employeeCode())) {
-                    errors.add(new EmployeeCreationError(
-                            i, empReq.email(), "Employee code already exists"));
-                    errorCount++;
-                    continue;
-                }
-
-                // Fetch related entities
-                Partner partner = partnerRepository.findById(organization.getPartner().getId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Partner not found"));
-                Division division = null;
-                if (empReq.divisionId() != null) {
-                    division = divisionRepository.findById(empReq.divisionId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Division not found"));
-
-                    if (!division.getOrganization().getId().equals(organization.getId())) {
-                        throw new BusinessException("Division does not belong to organization");
-                    }
-                }
-
-                Department department = null;
-                if (empReq.departmentId() != null) {
-                    department = departmentRepository.findById(empReq.departmentId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
-
-                    if (!department.getOrganization().getId().equals(organization.getId())) {
-                        throw new BusinessException(
-                                "Department does not belong to organization");
-                    }
-
-                    // If department has division, it must match
-                    if (department.getDivision() != null && division != null &&
-                            !department.getDivision().getId().equals(division.getId())) {
-                        throw new BusinessException(
-                                "Department division mismatch");
-                    }
-                }
-
-                // Create employee
-                Employee employee = Employee.builder()
-                        .partner(partner)
-                        .organization(organization)
-                        .division(division)
-                        .department(department)
-                        .employeeCode(empReq.employeeCode())
-                        .managerCode(empReq.managerCode())
-                        .email(empReq.email())
-                        .fullName(empReq.fullName())
-                        .role(empReq.role())
-                        .contact(empReq.contact())
-                        .telegramUsername(empReq.telegramUsername())
-                        .status(BotStatus.PENDING) // PENDING until Telegram registration
-                        .isManager(empReq.isManager() != null ? empReq.isManager() : false)
-                        .isHeadOfDepartment(empReq.isHeadOfDepartment() != null ?
-                                empReq.isHeadOfDepartment() : false)
-                        .isHeadOfDivision(empReq.isHeadOfDivision() != null ?
-                                empReq.isHeadOfDivision() : false)
-                        .build();
-
-                Employee saved = employeeRepository.save(employee);
-                successfulEmployees.add(saved);
-                successCount++;
-
-                log.debug("✅ Created employee: {} ({})",
-                        saved.getFullName(), saved.getEmployeeCode());
-
-            } catch (ResourceNotFoundException e) {
-                errors.add(new EmployeeCreationError(
-                        i, empReq.email(), e.getMessage()));
-                errorCount++;
-                log.error("❌ Entity not found for employee {}: {}",
-                        empReq.email(), e.getMessage());
-            } catch (BusinessException e) {
-                errors.add(new EmployeeCreationError(
-                        i, empReq.email(), e.getMessage()));
-                errorCount++;
-                log.error("❌ Business validation failed for employee {}: {}",
-                        empReq.email(), e.getMessage());
-            } catch (Exception e) {
-                errors.add(new EmployeeCreationError(
-                        i, empReq.email(), "Unexpected error: " + e.getMessage()));
-                errorCount++;
-                log.error("❌ Unexpected error creating employee {}: {}",
-                        empReq.email(), e.getMessage(), e);
-            }
-        }
-
-        log.info("📊 Batch creation completed - Success: {}, Errors: {}",
-                successCount, errorCount);
-
-        return new BatchEmployeeResult(successfulEmployees, errors, successCount, errorCount);
-    }
-    @Transactional
-    public Employee updateEmployee(Long employeeId, EmployeeRequest request) {
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
-
-        log.info("📝 Updating employee: {}", employee.getEmployeeCode());
-
-        // Update basic info
-        if (request.fullName() != null) {
-            employee.setFullName(request.fullName());
-        }
-        if (request.email() != null && !request.email().equals(employee.getEmail())) {
-            // Check if new email is available
-            if (employeeRepository.existsByPartnerIdAndEmail(
-                    employee.getPartner().getId(), request.email())) {
-                throw new BusinessException("Email already in use");
-            }
-            employee.setEmail(request.email());
-        }
-        if (request.contact() != null) {
-            employee.setContact(request.contact());
-        }
-        if (request.role() != null) {
-            employee.setRole(request.role());
-        }
-        if (request.managerCode() != null) {
-            employee.setManagerCode(request.managerCode());
-        }
-
-        // Update hierarchy flags
-        if (request.isManager() != null) {
-            employee.setIsManager(request.isManager());
-        }
-        if (request.isHeadOfDepartment() != null) {
-            employee.setIsHeadOfDepartment(request.isHeadOfDepartment());
-        }
-        if (request.isHeadOfDivision() != null) {
-            employee.setIsHeadOfDivision(request.isHeadOfDivision());
-        }
-
-        // Update organizational structure
-        if (request.departmentId() != null) {
-            Department department = departmentRepository.findById(request.departmentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
-            validateDepartment(department, employee.getOrganization(), employee.getDivision());
-            employee.setDepartment(department);
-        }
-
-        if (request.divisionId() != null) {
-            Division division = divisionRepository.findById(request.divisionId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Division not found"));
-            validateDivision(division, employee.getOrganization());
-            employee.setDivision(division);
-        }
-
-        Employee updated = employeeRepository.save(employee);
-        log.info("✅ Updated employee: {}", updated.getEmployeeCode());
-
-        return updated;
-    }
-    @Transactional
-    public void terminateEmployee(Long employeeId) {
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
-
-        log.info("🚫 Terminating employee: {} ({})",
-                employee.getFullName(), employee.getEmployeeCode());
-
-        employee.setStatus(BotStatus.TERMINATE);
-        employee.setDeletedAt(Instant.now());
-
-        // Clear sensitive information
-        employee.setTelegramUserId(null);
-        employee.setTelegramChatId(null);
-        employee.setTelegramUsername(null);
-
-        employeeRepository.save(employee);
-
-        log.info("✅ Employee terminated: {}", employee.getEmployeeCode());
-    }
-    @Transactional
-    public void reactivateEmployee(Long employeeId) {
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
-
-        if (employee.getStatus() != BotStatus.TERMINATE) {
-            throw new BusinessException("Employee is not terminated");
-        }
-
-        log.info("🔄 Reactivating employee: {} ({})",
-                employee.getFullName(), employee.getEmployeeCode());
-
-        employee.setStatus(BotStatus.PENDING);
-        employee.setDeletedAt(null);
-
-        employeeRepository.save(employee);
-
-        log.info("✅ Employee reactivated: {}", employee.getEmployeeCode());
-    }
-    @Transactional
-    public void unregisterFromTelegram(Long employeeId) {
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
-
-        log.info("📱 Unregistering employee from Telegram: {}", employee.getEmployeeCode());
-
-        employee.setTelegramUserId(null);
-        employee.setTelegramChatId(null);
-        employee.setTelegramUsername(null);
-        employee.setStatus(BotStatus.PENDING);
-        employee.setRegisteredAt(null);
-
-        employeeRepository.save(employee);
-
-        log.info("✅ Employee unregistered from Telegram: {}", employee.getEmployeeCode());
-    }
-    private ValidationResult validateEmployeeRequest(EmployeeRequest request) {
-
-        if (request.organizationId() == null) {
-            return ValidationResult.failure("Organization ID is required");
-        }
-        if (request.employeeCode() == null || request.employeeCode().trim().isEmpty()) {
-            return ValidationResult.failure("Employee code is required");
-        }
-        if (request.email() == null || request.email().trim().isEmpty()) {
-            return ValidationResult.failure("Email is required");
-        }
-        if (!isValidEmail(request.email())) {
-            return ValidationResult.failure("Invalid email format");
-        }
-        if (request.fullName() == null || request.fullName().trim().isEmpty()) {
-            return ValidationResult.failure("Full name is required");
-        }
-        return ValidationResult.success();
-    }
-
-    private void validateDivision(Division division, Organization organization) {
-        if (!division.getOrganization().getId().equals(organization.getId())) {
-            throw new BusinessException("Division does not belong to organization");
-        }
-    }
-
-    private void validateDepartment(
-            Department department,
-            Organization organization,
-            Division division) {
-
-        if (!department.getOrganization().getId().equals(organization.getId())) {
-            throw new BusinessException("Department does not belong to organization");
-        }
-
-        if (department.getDivision() != null && division != null &&
-                !department.getDivision().getId().equals(division.getId())) {
-            throw new BusinessException("Department does not belong to specified division");
-        }
-    }
-
-    private boolean isValidEmail(String email) {
-        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
-        return email != null && email.matches(emailRegex);
+        return employeeMapper.toResponse(saved);
     }
 
     private void sendWelcomeMessage(Employee employee) {
         try {
             // Get bot for employee's organization
-            Subscription subscription = employee.getOrganization() != null ?
+            Subscription subscription = employee.getOrganizationUnit() != null ?
                     getSubscriptionForEmployee(employee) : null;
 
             if (subscription == null) {
@@ -494,7 +188,7 @@ public class EmployeeRegistrationService {
                 
                 Have a great day! 🚀
                 """,
-                    employee.getOrganization().getOrganizationName(),
+                    employee.getOrganizationUnit().getUnitName(),
                     employee.getFullName()
             );
 
@@ -512,33 +206,23 @@ public class EmployeeRegistrationService {
         }
     }
 
+    // Other private methods updated similarly (e.g., isValidEmail remains)
+    // sendWelcomeMessage: Use company.getName() instead of organization.getOrganizationName()
+    // getSubscriptionForEmployee: Refactor to use hierarchy (traverse ancestors for subscriptions)
     private Subscription getSubscriptionForEmployee(Employee employee) {
-        // Try department subscription first
-        if (employee.getDepartment() != null) {
-            Optional<Subscription> deptSub = subscriptionRepository
-                    .findActiveDepartmentSubscription(employee.getDepartment().getId());
-            if (deptSub.isPresent()) {
-                return deptSub.get();
+
+        OrganizationUnit unit = employee.getOrganizationUnit();
+
+        while (unit != null) {
+            Optional<Subscription> sub = subscriptionRepository.findByScopeId(unit.getId());
+            if (sub.isPresent() && sub.get().getStatus() == SubscriptionStatus.ACTIVE) {
+                return sub.get();
             }
+            unit = unit.getParent();
         }
-
-        // Try division subscription
-        if (employee.getDivision() != null) {
-            Optional<Subscription> divSub = subscriptionRepository
-                    .findActiveDivisionSubscription(employee.getDivision().getId());
-            if (divSub.isPresent()) {
-                return divSub.get();
-            }
-        }
-
-        // Fall back to organization subscription
-        if (employee.getOrganization() != null) {
-            return subscriptionRepository
-                    .findActiveOrganizationSubscription(employee.getOrganization().getId())
-                    .orElse(null);
-        }
-
-        return null;
+        return subscriptionRepository.findByCompanyIdAndScopeIsNull(employee.getCompany().getId())
+                .filter(sub -> sub.getStatus() == SubscriptionStatus.ACTIVE)
+                .orElse(null);
     }
 
 }

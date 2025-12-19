@@ -34,6 +34,11 @@ public class TelegramChannel extends SoftDeletableAuditable<Long> implements Ser
     @JoinColumn(name = "bot_id", nullable = false)
     private TelegramBot bot;
 
+    @ManyToOne
+    @JoinColumn(name = "org_unit_id")
+    private OrganizationUnit organizationUnit;
+
+
     @Column(name = "chat_id", nullable = false)
     private String chatId;
 
@@ -56,21 +61,6 @@ public class TelegramChannel extends SoftDeletableAuditable<Long> implements Ser
 //    @Enumerated(EnumType.STRING)
 //    private ChannelScope scopeType;
 //
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private Organization organization;
-
-    @ManyToOne
-    @JoinColumn(name = "division_id")
-    private Division division;
-
-    @ManyToOne
-    @JoinColumn(name = "department_id")
-    private Department department;
-
-
-    @Column(name = "is_bot_admin")
-    private Boolean isBotAdmin = false;
 
     @Column(name = "can_pin_messages")
     private Boolean canPinMessages = false;
@@ -84,32 +74,4 @@ public class TelegramChannel extends SoftDeletableAuditable<Long> implements Ser
     private Integer memberCount;
 
 
-
-
-    @PrePersist
-    @PreUpdate
-    private void validateChannelScope() {
-        // Channel must belong to same subscription scope
-        if (subscription.getSubscriptionType() == SubscriptionType.ORGANIZATION) {
-            organization = subscription.getOrganization();
-            division = null;
-            department = null;
-        } else if (subscription.getSubscriptionType() == SubscriptionType.DIVISION) {
-            division = subscription.getDivision();
-            organization = division.getOrganization();
-            department = null;
-        } else if (subscription.getSubscriptionType() == SubscriptionType.DEPARTMENT) {
-            department = subscription.getDepartment();
-            organization = department.getOrganization();
-            division = department.getDivision();
-        }
-    }
-
-    @Transient
-    public String getScopeLevel() {
-        if (department != null) return "DEPARTMENT";
-        if (division != null) return "DIVISION";
-        if (organization != null) return "ORGANIZATION";
-        return "UNKNOWN";
-    }
 }

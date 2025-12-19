@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 public class TelegramBotServiceImpl implements TelegramBotService {
 
     private final TelegramBotRepository botRepository;
-    private final SubscriptionRepository subscriptionRepository;
 
     // ✅ Use @Value to inject configuration
     @Value("${telegram.webhook.base-url}")

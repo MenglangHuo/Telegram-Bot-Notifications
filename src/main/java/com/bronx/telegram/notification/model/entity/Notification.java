@@ -1,6 +1,6 @@
 package com.bronx.telegram.notification.model.entity;
-
 import com.bronx.telegram.notification.model.audit.SoftDeletableAuditable;
+import com.bronx.telegram.notification.model.enumz.DeliveryChannel;
 import com.bronx.telegram.notification.model.enumz.NotificationEventType;
 import com.bronx.telegram.notification.model.enumz.NotificationPriority;
 import com.bronx.telegram.notification.model.enumz.NotificationStatus;
@@ -13,6 +13,9 @@ import org.hibernate.type.SqlTypes;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 
 @Getter
@@ -25,25 +28,13 @@ public abstract class Notification extends SoftDeletableAuditable<Long> implemen
     @JoinColumn(name = "partner_id", nullable = false)
     private Partner partner;
 
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private Organization organization;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subscription_id", nullable = false)
     private Subscription subscription;
 
-    @ManyToOne
-    @JoinColumn(name = "division_id")
-    private Division division;
-
-    @ManyToOne
-    @JoinColumn(name = "department_id")
-    private Department department;
-
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "telegram_bot_id", nullable = false)
-//    private TelegramBot telegramBot; // Which bot will send this notification
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "org_unit_id")
+    private OrganizationUnit organizationUnit;
 
     @Column(name = "title", length = 200)
     private String title;
@@ -73,8 +64,12 @@ public abstract class Notification extends SoftDeletableAuditable<Long> implemen
     @Column(name = "status", nullable = false, length = 20)
     private NotificationStatus status = NotificationStatus.QUEUED;
 
-    @Column(name = "channels", length = 100)
-    private String channels = "TELEGRAM";
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "notification_channels_list",
+            joinColumns = @JoinColumn(name = "notification_id"))
+    @Column(name = "channel")
+    @Enumerated(EnumType.STRING)
+    private Set<DeliveryChannel> channels = new HashSet<>(Arrays.asList(DeliveryChannel.TELEGRAM));
 
     // Retry tracking
     @Column(name = "retry_count", nullable = false)

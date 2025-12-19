@@ -1,8 +1,5 @@
 package com.bronx.telegram.notification.dto.employee;
 
-import com.bronx.telegram.notification.dto.department.DepartmentMainResponse;
-import com.bronx.telegram.notification.dto.division.DivisionMainResponse;
-import com.bronx.telegram.notification.dto.organization.OrganizationMainResponse;
 import com.bronx.telegram.notification.dto.partner.PartnerMainResponse;
 import com.bronx.telegram.notification.model.enumz.BotStatus;
 
@@ -22,9 +19,6 @@ public record EmployeeResponse(
         Instant registeredAt,
         Boolean isManager,
         Boolean isHeadOfDivision,
-        PartnerMainResponse partner,
-        OrganizationMainResponse organization,
-        DivisionMainResponse division,
-        DepartmentMainResponse department
+        PartnerMainResponse partner
 ) {
 }

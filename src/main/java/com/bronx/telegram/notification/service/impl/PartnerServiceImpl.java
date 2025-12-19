@@ -3,15 +3,12 @@ package com.bronx.telegram.notification.service.impl;
 import com.bronx.telegram.notification.dto.baseResponse.PageResponse;
 import com.bronx.telegram.notification.dto.partner.PartnerRequest;
 import com.bronx.telegram.notification.dto.partner.PartnerResponse;
-import com.bronx.telegram.notification.exceptions.BusinessException;
 import com.bronx.telegram.notification.exceptions.DuplicateResourceException;
 import com.bronx.telegram.notification.exceptions.ResourceNotFoundException;
 import com.bronx.telegram.notification.mapper.PartnerMapper;
 import com.bronx.telegram.notification.model.entity.Partner;
 import com.bronx.telegram.notification.model.enumz.SubscriptionTier;
-import com.bronx.telegram.notification.repository.OrganizationRepository;
 import com.bronx.telegram.notification.repository.PartnerRepository;
-import com.bronx.telegram.notification.service.AuthenticationService;
 import com.bronx.telegram.notification.service.PartnerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +28,6 @@ import java.util.UUID;
 public class PartnerServiceImpl implements PartnerService {
 
     private final PartnerRepository partnerRepository;
-    private final OrganizationRepository organizationRepository;
     private final PartnerMapper partnerMapper;
     private final EncryptionService encryptionService;
 
@@ -80,17 +76,6 @@ public class PartnerServiceImpl implements PartnerService {
         if (request.getMaxOrganizations() != null &&
                 request.getMaxOrganizations() < partner.getMaxOrganizations()) {
 
-            Integer currentCount = organizationRepository
-                    .countOrganizationsByPartnerId(id);
-
-            if (currentCount > request.getMaxOrganizations()) {
-                throw new BusinessException(
-                        String.format(
-                                "Cannot reduce max organizations to %d. Current count: %d",
-                                request.getMaxOrganizations(), currentCount
-                        )
-                );
-            }
         }
 
         // Update fields
@@ -105,14 +90,6 @@ public class PartnerServiceImpl implements PartnerService {
     @Override
     public void deletePartner(Long id) {
         Partner partner = findPartnerById(id);
-
-        // Check for active organizations
-        Integer orgCount = organizationRepository.countOrganizationsByPartnerId(id);
-        if (orgCount > 0) {
-            throw new BusinessException(
-                    "Cannot delete partner with " + orgCount + " active organizations"
-            );
-        }
 
         partner.setDeletedAt(Instant.now());
         partner.setIsActive(false);
@@ -168,9 +145,7 @@ public class PartnerServiceImpl implements PartnerService {
         Partner partner = findPartnerById(id);
         PartnerResponse response = partnerMapper.toResponse(partner);
 
-        // Add statistics
-        response.setCurrentOrganizationCount(organizationRepository.countOrganizationsByPartnerId((id)));
-        response.setCurrentBotCount(
+              response.setCurrentBotCount(
                 partnerRepository.countTelegramBotById((id)
         ));
         response.setTotalSubscriptions(

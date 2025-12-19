@@ -26,9 +26,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final PartnerRepository partnerRepository;
-    private final OrganizationRepository organizationRepository;
-    private final DivisionRepository divisionRepository;
-    private final DepartmentRepository departmentRepository;
+    private final CompanyRepository companyRepository;
+    private final OrganizationUnitRepository organizationUnitRepository;
     private final SubscriptionMapper subscriptionMapper;
 
 
@@ -36,51 +35,28 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     public SubscriptionResponse createSubscription(SubscriptionRequest request) {
         // Validate partner
         Partner partner = findActivePartner(request.getPartnerId());
-
-        // Validate and set scope entities based on subscription type
-        Organization organization = null;
-        Division division = null;
-        Department department = null;
-
-        switch (request.getSubscriptionType()) {
-            case ORGANIZATION -> {
-                if (request.getOrganizationId() == null) {
-                    throw new BusinessException(
-                            "Organization ID is required for ORGANIZATION subscription");
-                }
-                organization = findOrganizationById(request.getOrganizationId());
-                validateOrganizationBelongsToPartner(organization, partner);
-            }
-            case DIVISION -> {
-                if (request.getDivisionId() == null) {
-                    throw new BusinessException(
-                            "Division ID is required for DIVISION subscription");
-                }
-                division = findDivisionById(request.getDivisionId());
-                organization = division.getOrganization();
-                validateOrganizationBelongsToPartner(organization, partner);
-            }
-            case DEPARTMENT -> {
-                if (request.getDepartmentId() == null) {
-                    throw new BusinessException(
-                            "Department ID is required for DEPARTMENT subscription");
-                }
-                department = findDepartmentById(request.getDepartmentId());
-                organization = department.getOrganization();
-                division = department.getDivision();
-                validateOrganizationBelongsToPartner(organization, partner);
-            }
+        Company company = null;
+        OrganizationUnit scope = null;
+        if (request.getCompanyId() == null) {
+            throw new BusinessException("Company ID is required");
         }
-        // Map and save
+        company = companyRepository.findById(request.getCompanyId())
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
+
+        validateCompanyBelongsToPartner(company, partner);
+
+        if (request.getOrgUnitId() != null) {
+            scope = organizationUnitRepository.findById(request.getOrgUnitId())
+                    .orElseThrow(() -> new ResourceNotFoundException("OrganizationUnit not found"));
+            validateOrgUnitBelongsToCompany(scope, company);
+        }
+
         Subscription subscription = subscriptionMapper.toEntity(request);
         subscription.setPartner(partner);
-        subscription.setOrganization(organization);
-        subscription.setDivision(division);
-        subscription.setDepartment(department);
-
+        subscription.setCompany(company);
+        subscription.setScope(scope);
+        // Set subscriptionType based on scope (e.g., if scope==null -> COMPANY, else UNIT)
         Subscription saved = subscriptionRepository.save(subscription);
-        log.info("Subscription created successfully with ID: {}", saved.getId());
-
         return subscriptionMapper.toResponse(saved);
     }
 
@@ -105,32 +81,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return PageResponse.of(responsePage);
     }
 
-    @Override
-    public SubscriptionResponse updateSubscription(Long id, SubscriptionRequest request) {
-        Subscription subscription = findSubscriptionById(id);
 
-        //TODO
-        // Validate if reducing limits
-//        if (request.getMaxTelegramBots() != null &&
-//                request.getMaxTelegramBots() < subscription.getMaxTelegramBots()) {
-//            Integer currentBots = subscriptionRepository
-//                    .countBotsBySubscriptionId(id);
-
-//            if (currentBots > request.getMaxTelegramBots()) {
-//                throw new BusinessException(
-//                        String.format(
-//                                "Cannot reduce max bots to %d. Current count: %d",
-//                                request.getMaxTelegramBots(), currentBots
-//                        )
-//                );
-//            }
-//    }
-        subscriptionMapper.updateEntityFromDto(request, subscription);
-        Subscription updated = subscriptionRepository.save(subscription);
-        log.info("Subscription updated successfully: {}", id);
-        return subscriptionMapper.toResponse(updated);
-
-    }
 
     @Override
     public SubscriptionResponse activateSubscription(Long id) {
@@ -155,31 +106,16 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return subscriptionMapper.toResponse(updated);
     }
 
-    @Override
-    public Subscription getSubscriptionForEmployee(Employee employee) {
-        // Try department subscription first
-        if (employee.getDepartment() != null) {
-            Optional<Subscription> deptSub = subscriptionRepository
-                    .findActiveDepartmentSubscription(employee.getDepartment().getId());
-            if (deptSub.isPresent()) {
-                return deptSub.get();
-            }
+    private void validateCompanyBelongsToPartner(Company company, Partner partner) {
+        if (!company.getPartner().getId().equals(partner.getId())) {
+            throw new BusinessException("Company does not belong to the specified partner");
         }
+    }
 
-        // Try division subscription
-        if (employee.getDivision() != null) {
-            Optional<Subscription> divSub = subscriptionRepository
-                    .findActiveDivisionSubscription(employee.getDivision().getId());
-            if (divSub.isPresent()) {
-                return divSub.get();
-            }
+    private void validateOrgUnitBelongsToCompany(OrganizationUnit unit, Company company) {
+        if (!unit.getCompany().getId().equals(company.getId())) {
+            throw new BusinessException("OrganizationUnit does not belong to the company");
         }
-
-        // Fall back to organization subscription
-        return subscriptionRepository
-                .findActiveOrganizationSubscription(employee.getOrganization().getId())
-                .orElseThrow(() -> new BusinessException(
-                        "No active subscription found for employee"));
     }
 
     @Override
@@ -236,6 +172,29 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return PageResponse.of(responsePage);
     }
 
+    @Override
+    public Subscription getSubscriptionForEmployee(Employee employee) {
+        OrganizationUnit currentUnit = employee.getOrganizationUnit();
+
+        while (currentUnit != null) {
+            Optional<Subscription> subscription = subscriptionRepository
+                    .findActiveSubscriptionByOrgUnit(currentUnit.getId());
+
+            if (subscription.isPresent()) {
+                return subscription.get();
+            }
+
+            // Move up to parent unit
+            currentUnit = currentUnit.getParent();
+        }
+
+        // Fall back to company-wide subscription
+        return subscriptionRepository
+                .findActiveCompanySubscription(employee.getCompany().getId())
+                .orElse(null);
+
+    }
+
 
     // Helper methods
     private Subscription findSubscriptionById(Long id) {
@@ -258,36 +217,41 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
         return partner;
     }
+    @Override
+    public SubscriptionResponse updateSubscription(Long id, SubscriptionRequest request) {
+        Subscription subscription = findSubscriptionById(id);
 
-    private Organization findOrganizationById(Long id) {
-        return organizationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Organization not found with ID: " + id
-                ));
+        //TODO
+        // Validate if reducing limits
+//        if (request.getMaxTelegramBots() != null &&
+//                request.getMaxTelegramBots() < subscription.getMaxTelegramBots()) {
+//            Integer currentBots = subscriptionRepository
+//                    .countBotsBySubscriptionId(id);
+
+//            if (currentBots > request.getMaxTelegramBots()) {
+//                throw new BusinessException(
+//                        String.format(
+//                                "Cannot reduce max bots to %d. Current count: %d",
+//                                request.getMaxTelegramBots(), currentBots
+//                        )
+//                );
+//            }
+//    }
+        subscriptionMapper.updateEntityFromDto(request, subscription);
+        Subscription updated = subscriptionRepository.save(subscription);
+        log.info("Subscription updated successfully: {}", id);
+        return subscriptionMapper.toResponse(updated);
+
     }
 
-    private Division findDivisionById(Long id) {
-        return divisionRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Division not found with ID: " + id
-                ));
-    }
-
-    private Department findDepartmentById(Long id) {
-        return departmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Department not found with ID: " + id
-                ));
-    }
-
-    private void validateOrganizationBelongsToPartner(
-            Organization organization,
-            Partner partner
-    ) {
-        if (!organization.getPartner().getId().equals(partner.getId())) {
-            throw new BusinessException(
-                    "Organization does not belong to the specified partner"
-            );
-        }
-    }
+//    private void validateOrganizationBelongsToPartner(
+//            Organization organization,
+//            Partner partner
+//    ) {
+//        if (!organization.getPartner().getId().equals(partner.getId())) {
+//            throw new BusinessException(
+//                    "Organization does not belong to the specified partner"
+//            );
+//        }
+//    }
 }

@@ -6,21 +6,25 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Setter
-@Getter
 @Entity
-@AllArgsConstructor
+@Table(name = "companies",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"partner_id", "code"})
+        })
+@Getter
+@Setter
 @NoArgsConstructor
-@Table(name = "company")
+@AllArgsConstructor
 public class Company extends SoftDeletableAuditable<Long> {
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "partner_id", nullable = false)
     private Partner partner;
 
-    @Column(name = "name", nullable = false,length = 100)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(name = "code", nullable = false,length = 70)
+    @Column(nullable = false, length = 70)
     private String code;
 
     private String description;

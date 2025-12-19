@@ -20,10 +20,10 @@ public class SubscriptionRequest {
     @NotNull(message = "Subscription type is required")
     private SubscriptionType subscriptionType;
 
-    // Only ONE of these should be set based on subscriptionType
-    private Long organizationId;
-    private Long divisionId;
-    private Long departmentId;
+
+    private Long orgUnitId;
+
+    private Long companyId;
 
     @Size(max = 50)
     private String subscriptionName;

@@ -1,4 +1,5 @@
 package com.bronx.telegram.notification.dto.subscription;
+import com.bronx.telegram.notification.dto.organizationUnit.OrganizationMainResponse;
 import com.bronx.telegram.notification.model.enumz.SubscriptionStatus;
 import com.bronx.telegram.notification.model.enumz.SubscriptionType;
 import lombok.AllArgsConstructor;
@@ -16,12 +17,6 @@ public class SubscriptionResponse {
     private Long partnerId;
     private String partnerName;
     private SubscriptionType subscriptionType;
-    private Long organizationId;
-    private String organizationName;
-    private Long divisionId;
-    private String divisionName;
-    private Long departmentId;
-    private String departmentName;
     private String subscriptionName;
     private Integer maxTelegramBots;
     private Integer maxTelegramChannels;
@@ -30,6 +25,7 @@ public class SubscriptionResponse {
     private SubscriptionStatus status;
     private Instant startDate;
     private Instant endDate;
+    private OrganizationMainResponse scope;
 
     // Usage statistics
     private Integer currentBotCount;

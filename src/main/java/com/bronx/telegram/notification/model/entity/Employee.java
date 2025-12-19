@@ -29,16 +29,12 @@ public class Employee extends SoftDeletableAuditable<Long> {
     private Partner partner;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id", nullable = false)
-    private Organization organization;
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "division_id")
-    private Division division;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+    @JoinColumn(name = "org_unit_id", nullable = false)
+    private OrganizationUnit organizationUnit;
 
     @Column(name = "employee_code", nullable = false, length = 30)
     private String employeeCode;
@@ -75,27 +71,27 @@ public class Employee extends SoftDeletableAuditable<Long> {
 
     @Column(name = "registered_at")
     private Instant registeredAt;
+//
+//    // ✅ ENHANCEMENT: Employee hierarchy level
+//    @Column(name = "is_manager")
+//    @Builder.Default
+//    private Boolean isManager = false;
+//
+//    @Column(name = "is_head_of_department")
+//    @Builder.Default
+//    private Boolean isHeadOfDepartment = false;
+//
+//    @Column(name = "is_head_of_division")
+//    @Builder.Default
+//    private Boolean isHeadOfDivision = false;
 
-    // ✅ ENHANCEMENT: Employee hierarchy level
-    @Column(name = "is_manager")
-    @Builder.Default
-    private Boolean isManager = false;
-
-    @Column(name = "is_head_of_department")
-    @Builder.Default
-    private Boolean isHeadOfDepartment = false;
-
-    @Column(name = "is_head_of_division")
-    @Builder.Default
-    private Boolean isHeadOfDivision = false;
-
-    @Transient
-    public String getHierarchyLevel() {
-        if (Boolean.TRUE.equals(isHeadOfDivision)) return "DIVISION_HEAD";
-        if (Boolean.TRUE.equals(isHeadOfDepartment)) return "DEPARTMENT_HEAD";
-        if (Boolean.TRUE.equals(isManager)) return "MANAGER";
-        return "EMPLOYEE";
-    }
+//    @Transient
+//    public String getHierarchyLevel() {
+//        if (Boolean.TRUE.equals(isHeadOfDivision)) return "DIVISION_HEAD";
+//        if (Boolean.TRUE.equals(isHeadOfDepartment)) return "DEPARTMENT_HEAD";
+//        if (Boolean.TRUE.equals(isManager)) return "MANAGER";
+//        return "EMPLOYEE";
+//    }
     @Transient
     public boolean isRegisteredWithTelegram() {
         return telegramUserId != null && telegramChatId != null;

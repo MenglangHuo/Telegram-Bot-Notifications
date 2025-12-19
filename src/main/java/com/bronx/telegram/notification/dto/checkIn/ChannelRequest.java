@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChannelRequest {
-    private String organizationCode;
+    private String companyCode;
     private String channelName;
     private String type;
     private String title;

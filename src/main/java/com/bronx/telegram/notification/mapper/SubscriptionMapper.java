@@ -19,12 +19,6 @@ public interface SubscriptionMapper {
 
     @Mapping(source = "partner.id", target = "partnerId")
     @Mapping(source = "partner.partnerName", target = "partnerName")
-    @Mapping(source = "organization.id", target = "organizationId")
-    @Mapping(source = "organization.organizationName", target = "organizationName")
-    @Mapping(source = "division.id", target = "divisionId")
-    @Mapping(source = "division.divisionName", target = "divisionName")
-    @Mapping(source = "department.id", target = "departmentId")
-    @Mapping(source = "department.departmentName", target = "departmentName")
     SubscriptionResponse toResponse(Subscription subscription);
 
     List<SubscriptionResponse> toResponseList(List<Subscription> subscriptions);

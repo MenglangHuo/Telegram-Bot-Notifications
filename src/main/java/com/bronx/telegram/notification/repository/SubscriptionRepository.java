@@ -9,8 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.io.Serializable;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -42,35 +40,31 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     @Query("""
         SELECT s FROM Subscription s
         WHERE s.subscriptionType = :type
-        AND s.organization.id = :orgId
+        AND s.company.id = :companyId
         AND s.status = 'ACTIVE'
     """)
-    List<Subscription> findByTypeAndOrganization(
+    List<Subscription> findByTypeAndCompany(
             @Param("type") SubscriptionType type,
-            @Param("orgId") Long organizationId);
+            @Param("companyId") Long companyId);
 
     @Query("""
         SELECT s FROM Subscription s
-        WHERE s.subscriptionType = 'DIVISION'
-        AND s.division.id = :divisionId
+        WHERE s.scope.id = :scopeId
         AND s.status = 'ACTIVE'
     """)
-    Optional<Subscription> findActiveDivisionSubscription(@Param("divisionId") Long divisionId);
+    Optional<Subscription> findActiveSubscriptionByScopeId(@Param("scopeId") Long scopeId);
 
-    @Query("""
-        SELECT s FROM Subscription s
-        WHERE s.subscriptionType = 'DEPARTMENT'
-        AND s.department.id = :deptId
-        AND s.status = 'ACTIVE'
-    """)
-    Optional<Subscription> findActiveDepartmentSubscription(@Param("deptId") Long departmentId);
+    Optional<Subscription> findByCompanyIdAndScopeIsNull(Long companyId);
 
-    @Query("""
-       SELECT s FROM Subscription s
-       WHERE s.subscriptionName = 'ORGANIZATION'
-       AND s.organization.id =:organizeId
-       AND s.status ='ACTIVE'
-""")
-    Optional<Subscription> findActiveOrganizationSubscription(@Param("organizeId") Long organizeId);
+    @Query("select s from Subscription s where s.scope.id = ?1")
+    Optional<Subscription> findByScopeId(Long scopeId);
 
+
+    @Query("SELECT s FROM Subscription s WHERE s.scope.id = :orgUnitId " +
+            "AND s.status = 'ACTIVE' AND s.deletedAt IS NULL")
+    Optional<Subscription> findActiveSubscriptionByOrgUnit(Long orgUnitId);
+
+    @Query("SELECT s FROM Subscription s WHERE s.company.id = :companyId " +
+            "AND s.scope IS NULL AND s.status = 'ACTIVE' AND s.deletedAt IS NULL")
+    Optional<Subscription> findActiveCompanySubscription(Long companyId);
 }

@@ -48,6 +48,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .findByPartnerIdAndEmployeeCode(partnerId, employeeCode)
                 .orElseThrow(() -> new EntityNotFoundException("Employee not found"));
 
+
 //        if (!employee.isRegisteredWithTelegram()) {
 //            throw new IllegalStateException("Employee has not registered with Telegram");
 //        }
@@ -56,9 +57,7 @@ public class NotificationServiceImpl implements NotificationService {
         NotificationPersonal notification = new NotificationPersonal();
         notification.setPartner(subscription.getPartner());
         notification.setSubscription(subscription);
-        notification.setOrganization(employee.getOrganization());
-        notification.setDivision(employee.getDivision());
-        notification.setDepartment(employee.getDepartment());
+        notification.setOrganizationUnit(employee.getOrganizationUnit());
         notification.setEmployee(employee);
         notification.setNotificationType(NotificationEventType.CHECK_IN);
         notification.setTitle(request.getTitle());
@@ -80,8 +79,6 @@ public class NotificationServiceImpl implements NotificationService {
         // Queue for processing
         queueService.queuePersonalNotification(notification);
 
-        log.info("Created personal notification {} for employee {} in scope: {}",
-                notification.getId(), employeeCode, subscription.getScopeLevel());
 
         return notification;
     }
@@ -134,17 +131,12 @@ public class NotificationServiceImpl implements NotificationService {
             throw new IllegalArgumentException("Channel does not belong to subscription");
         }
 
-        if (!Boolean.TRUE.equals(channel.getIsBotAdmin())) {
-            throw new IllegalStateException("Bot is not admin in channel");
-        }
 
         log.info("notification type: {}",request.getEventType());
         NotificationChannel notification = new NotificationChannel();
         notification.setPartner(subscription.getPartner());
         notification.setSubscription(subscription);
-        notification.setOrganization(channel.getOrganization());
-        notification.setDivision(channel.getDivision());
-        notification.setDepartment(channel.getDepartment());
+        notification.setOrganizationUnit(channel.getOrganizationUnit());
         notification.setTelegramChannel(channel);
         notification.setTitle(request.getTitle());
         notification.setMessage(request.getMessage());
@@ -163,8 +155,8 @@ public class NotificationServiceImpl implements NotificationService {
 
         queueService.queueChannelNotification(notification);
 
-        log.info("Created channel notification {} for channel {} in scope: {}",
-                notification.getId(), channel.getChatName(), channel.getScopeLevel());
+        log.info("Created channel notification {} for channel {} ",
+                notification.getId(), channel.getChatName());
 
         return notification;
     }
@@ -182,27 +174,19 @@ public class NotificationServiceImpl implements NotificationService {
                     .ifPresent(recipients::add);
         }
 
-        // Department head (if different from manager)
-        if (employee.getDepartment() != null) {
-            employeeRepository
-                    .findHeadOfDepartment(employee.getDepartment().getId())
-                    .ifPresent(head -> {
-                        if (!recipients.contains(head)) {
-                            recipients.add(head);
-                        }
-                    });
-        }
+        // Find managers in the org unit hierarchy
+        OrganizationUnit currentUnit = employee.getOrganizationUnit().getParent();
 
-        // Division head (for important notifications)
-        if (employee.getDivision() != null &&
-                (employee.getRole() != null && employee.getRole().contains("MANAGER"))) {
-            employeeRepository
-                    .findHeadOfDivision(employee.getDivision().getId())
-                    .ifPresent(head -> {
-                        if (!recipients.contains(head)) {
-                            recipients.add(head);
-                        }
-                    });
+        while (currentUnit != null && recipients.size() < 3) { // Limit to 3 levels
+            // Find employees with management roles in this unit
+            List<Employee> managers = employeeRepository
+                    .findManagersInOrgUnit(currentUnit.getId());
+
+            managers.stream()
+                    .filter(m -> !recipients.contains(m))
+                    .forEach(recipients::add);
+
+            currentUnit = currentUnit.getParent();
         }
 
         return recipients;
@@ -210,26 +194,20 @@ public class NotificationServiceImpl implements NotificationService {
 
 
     private void validateEmployeeInScope(Employee employee, Subscription subscription) {
-        switch (subscription.getSubscriptionType()) {
-            case ORGANIZATION -> {
-                if (!employee.getOrganization().getId()
-                        .equals(subscription.getOrganization().getId())) {
-                    throw new BusinessException("Employee not in subscription organization");
-                }
-            }
-            case DIVISION -> {
-                if (employee.getDivision() == null ||
-                        !employee.getDivision().getId()
-                                .equals(subscription.getDivision().getId())) {
-                    throw new BusinessException("Employee not in subscription division");
-                }
-            }
-            case DEPARTMENT -> {
-                if (employee.getDepartment() == null ||
-                        !employee.getDepartment().getId()
-                                .equals(subscription.getDepartment().getId())) {
-                    throw new BusinessException("Employee not in subscription department");
-                }
+        // Check if employee's company matches subscription
+        if (!employee.getCompany().getId().equals(subscription.getCompany().getId())) {
+            throw new BusinessException("Employee not in subscription company");
+        }
+
+        // If subscription has specific scope, check if employee is in that scope
+        if (subscription.getScope() != null) {
+            List<Long> employeeAncestors = employee.getOrganizationUnit().getAncestorIds();
+
+            if (!employeeAncestors.contains(subscription.getScope().getId()) &&
+                    !employee.getOrganizationUnit().getId().equals(subscription.getScope().getId())) {
+                throw new BusinessException(
+                        "Employee not in subscription scope: " +
+                                subscription.getScope().getFullPath());
             }
         }
     }

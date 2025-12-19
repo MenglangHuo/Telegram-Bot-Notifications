@@ -12,9 +12,9 @@ import org.mapstruct.ReportingPolicy;
 @Mapper(componentModel = "spring",
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
         uses = {PartnerMapper.class,
-                OrganizationMapper.class,
-                DivisionMapper.class,
-                DepartmentMapper.class},
+                OrganizationUnitMapper.class,
+                CompanyMapper.class
+        },
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 
 public interface EmployeeMapper {

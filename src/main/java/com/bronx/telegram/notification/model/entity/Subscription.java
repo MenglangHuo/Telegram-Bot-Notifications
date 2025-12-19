@@ -27,16 +27,12 @@ public class Subscription extends SoftDeletableAuditable<Long> {
     private Partner partner;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organization_id")
-    private Organization organization;
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "division_id")
-    private Division division;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+    @JoinColumn(name = "org_unit_id")
+    private OrganizationUnit scope;
 
     @Column(name = "subscription_type", nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
@@ -76,27 +72,12 @@ public class Subscription extends SoftDeletableAuditable<Long> {
     private JsonNode features; // e.g., {"priority_support": true, "analytics": true}
 
 
-    // Helper methods
-    @Transient
-    public String getScopeName() {
-        return switch (subscriptionType) {
-            case ORGANIZATION -> organization.getOrganizationName();
-            case DIVISION -> division.getDivisionName();
-            case DEPARTMENT -> department.getDepartmentName();
-            case UNKNOWN ->  null;
-        };
-    }
+    @Column(name = "current_notifications_count")
+    private Integer currentNotificationsCount = 0;
 
-    @Transient
-    public Long getScopeId() {
-        return switch (subscriptionType) {
-            case ORGANIZATION -> organization.getId();
-            case DIVISION -> division.getId();
-            case DEPARTMENT -> department.getId();
-            case UNKNOWN ->  null;
-        };
-    }
-    // ✅ ENHANCEMENT: Check if subscription is valid
+    @Column(name = "current_bot_count")
+    private Integer currentBotCount = 0;
+
     @Transient
     public boolean isValid() {
         if (status != SubscriptionStatus.ACTIVE) return false;
@@ -105,12 +86,34 @@ public class Subscription extends SoftDeletableAuditable<Long> {
     }
 
     @Transient
-    public SubscriptionType getScopeLevel() {
-        if (department != null) return SubscriptionType.DEPARTMENT;
-        if (division != null) return SubscriptionType.DIVISION;
-        if (organization != null) return SubscriptionType.DIVISION;
-        return SubscriptionType.UNKNOWN;
+    public boolean canSendNotification() {
+        return isValid() &&
+                (maxNotificationsPerMonth == null ||
+                        currentNotificationsCount < maxNotificationsPerMonth);
     }
+
+    @Transient
+    public boolean canAddBot() {
+        return isValid() &&
+                (maxTelegramBots == null || currentBotCount < maxTelegramBots);
+    }
+
+    @Transient
+    public int getRemainingNotifications() {
+        if (maxNotificationsPerMonth == null) return Integer.MAX_VALUE;
+        return Math.max(0, maxNotificationsPerMonth - currentNotificationsCount);
+    }
+
+    public void incrementNotificationCount() {
+        this.currentNotificationsCount =
+                (this.currentNotificationsCount == null ? 0 : this.currentNotificationsCount) + 1;
+    }
+
+    public void resetMonthlyCounters() {
+        this.currentNotificationsCount = 0;
+        this.lastResetDate = Instant.now();
+    }
+
 
 
 }

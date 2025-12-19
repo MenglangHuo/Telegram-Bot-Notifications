@@ -68,9 +68,13 @@ public class TelegramBot extends SoftDeletableAuditable<Long> {
     @Builder.Default
     private Integer errorCount = 0;
 
-    // Transient - not stored in DB
-    @Transient
-    private TelegramBot botInstance;
+    // ✅ NEW: Health check tracking
+    @Column(name = "last_health_check")
+    private Instant lastHealthCheck;
+
+    @Column(name = "total_messages_sent")
+    @Builder.Default
+    private Long totalMessagesSent = 0L;
 
     @Transient
     public boolean isHealthy() {

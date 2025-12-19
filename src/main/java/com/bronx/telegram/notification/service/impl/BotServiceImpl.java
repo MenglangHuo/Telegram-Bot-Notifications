@@ -38,18 +38,11 @@ public class BotServiceImpl implements BotService {
     @Override
     @Transactional
     public TelegramBotResponse createNewBot(BotRequest request) {
-
-
-        // Validate subscription
         Subscription subscription = subscriptionRepository.findById(request.subscriptionId())
                 .orElseThrow(() -> new EntityNotFoundException("Subscription not found"));
-
         if (!validationService.canCreateBot(subscription)) {
-            throw new BusinessException(
-                    "Cannot create bot: subscription limit reached or subscription not active");
+            throw new BusinessException("Cannot create bot: subscription limit reached or subscription not active");
         }
-
-        // Create bot
         TelegramBot telegramBot = TelegramBot.builder()
                 .subscription(subscription)
                 .partner(subscription.getPartner())
@@ -59,28 +52,20 @@ public class BotServiceImpl implements BotService {
                 .status(BotStatus.ACTIVE)
                 .webhookVerified(false)
                 .build();
-
         try {
             TelegramBot savedBot = telegramBotRepository.save(telegramBot);
-
-            // Set webhook URL
             String webhookUrl = String.format("%s%s/%s", baseUrl, path, savedBot.getId());
             savedBot.setWebhookUrl(webhookUrl);
             savedBot = telegramBotRepository.save(savedBot);
-
-            // Register with TelegramBotService
             telegramBotService.registerBot(savedBot);
-
             log.info("Created bot {} for subscription {} (scope: {})",
                     savedBot.getBotUsername(),
                     subscription.getId(),
-                    subscription.getScopeLevel());
-
+                    subscription.getScope() != null ? subscription.getScope().getUnitName() : "Company");
             return telegramBotMapper.toResponse(savedBot);
-
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Telegram bot creation failed", e);
-            throw new RuntimeException("Telegram bot creation failed: " + e.getMessage());
+            throw new BusinessException("Telegram bot creation failed: " + e.getMessage());
         }
 
     }
@@ -89,11 +74,8 @@ public class BotServiceImpl implements BotService {
     public TelegramBot getBotForScope(Long subscriptionId, String scopeLevel) {
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new EntityNotFoundException("Subscription not found"));
-
-        // Find active bot for this subscription
         return telegramBotRepository
                 .findFirstBySubscriptionIdAndStatus(subscriptionId, BotStatus.ACTIVE)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "No active bot found for subscription"));
+                .orElseThrow(() -> new EntityNotFoundException("No active bot found for subscription"));
     }
 }

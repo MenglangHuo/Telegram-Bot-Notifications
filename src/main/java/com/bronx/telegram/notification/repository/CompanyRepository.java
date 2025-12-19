@@ -35,4 +35,12 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
             "OR LOWER(c.code) LIKE LOWER(CONCAT('%', :search, '%'))")
     Page<Company> searchCompanies(@Param("search") String search, Pageable pageable);
 
+    @Query("select c from Company c where c.partner.id = ?1 and c.code = ?2")
+    Optional<Company> findByPartnerIdAndCode(Long partnerId, String code);
+
+    @Query("select (count(c) > 0) from Company c where c.partner.id = ?1 and c.code = ?2")
+    boolean existsByPartnerIdAndCode(Long partnerId, String code);
+
+    Page<Company> findAllByPartnerIdAndDeletedAtIsNull(Long partnerId, Pageable pageable);
+
 }

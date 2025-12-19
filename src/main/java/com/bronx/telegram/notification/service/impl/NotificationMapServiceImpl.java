@@ -20,10 +20,9 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class NotificationMapServiceImpl implements NotificationMapService {
     private final PartnerRepository partnerRepository;
-    private final OrganizationRepository organizationRepository;
+    private final CompanyRepository companyRepository;
     private final TelegramChannelRepository channelRepository;
     private final SubscriptionService subscriptionService;
-    private final SubscriptionRepository subscriptionRepository;
     private final NotificationService notificationService;
     private final EmployeeRepository employeeRepository;
     private final AuthenticationService authService;
@@ -33,19 +32,16 @@ public class NotificationMapServiceImpl implements NotificationMapService {
         Partner partner = partnerRepository.findByClientId(clientId)
                 .orElseThrow(() -> new UnauthorizedException("Invalid client ID"));
 
-        // 2. Find organization
-        Organization org = organizationRepository
-                .findByPartnerIdAndOrganizationCode(
-                        partner.getId(),
-                        request.getOrganizationCode())
-                .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
+        // Find company
+        Company company = companyRepository
+                .findByPartnerIdAndCode(partner.getId(), request.getCompanyCode())
+                .orElseThrow(() -> new EntityNotFoundException("Company not found"));
 
-        // 3. Find channel by name
+        // Find channel by name and company
         TelegramChannel channel = channelRepository
-                .findByOrganizationIdAndChatName(
-                        org.getId(),
-                        request.getChannelName())
-                .orElseThrow(() -> new EntityNotFoundException("Channel not found"));
+                .findByCompanyIdAndChatName(company.getId(), request.getChannelName())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Channel not found in company: " + company.getName()));
 
         // 4. Create notification
         return notificationService.createChannelNotification(
@@ -58,12 +54,6 @@ public class NotificationMapServiceImpl implements NotificationMapService {
     @Override
     public NotificationPersonal mapPersonalNotification(String clientId, String secretKey, CheckInRequest request) {
         Partner partner = authService.authenticateRequest(clientId, secretKey);
-
-//        Organization org = organizationRepository
-//                .findByPartnerIdAndOrganizationCode(
-//                        partner.getId(),
-//                        request.getOrganizationCode())
-//                .orElseThrow(() -> new EntityNotFoundException("Organization not found"));
 
         Employee employee = employeeRepository
                 .findByPartnerIdAndEmployeeCode(

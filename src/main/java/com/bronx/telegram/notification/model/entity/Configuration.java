@@ -10,8 +10,8 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-@Entity
-@Table(name = "configurations")
+//@Entity
+//@Table(name = "configurations")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,17 +23,17 @@ public class Configuration extends SoftDeletableAuditable<Long> {
     private Partner partner;
 
     // Only ONE of these should be set
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private Organization organization;
-
-    @ManyToOne
-    @JoinColumn(name = "division_id")
-    private Division division;
-
-    @ManyToOne
-    @JoinColumn(name = "department_id")
-    private Department department;
+//    @ManyToOne
+//    @JoinColumn(name = "organization_id")
+//    private Organization organization;
+//
+//    @ManyToOne
+//    @JoinColumn(name = "division_id")
+//    private Division division;
+//
+//    @ManyToOne
+//    @JoinColumn(name = "department_id")
+//    private Department department;
 
     @Column(length = 50)
     private String key;

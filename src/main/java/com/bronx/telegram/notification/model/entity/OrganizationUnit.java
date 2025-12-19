@@ -18,10 +18,13 @@ import java.util.stream.Collectors;
 @Entity
 @Table(name = "organization_units",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"partner_id", "unit_code"}),
-                @UniqueConstraint(columnNames = {"partner_id", "path"})
-        }
-)
+                @UniqueConstraint(columnNames = {"company_id", "unit_code"}),
+                @UniqueConstraint(columnNames = {"company_id", "path"})
+        },
+        indexes = {
+                @Index(name = "idx_org_unit_path", columnList = "path"),
+                @Index(name = "idx_org_unit_parent", columnList = "parent_id")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -30,41 +33,46 @@ import java.util.stream.Collectors;
 public class OrganizationUnit extends SoftDeletableAuditable<Long> {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "partner_id", nullable = false)
-    private Company partner;
+    @JoinColumn(name = "company_id", nullable = false)
+    private Company company;
 
-    // Self-referencing for tree structure
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private OrganizationUnit parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<OrganizationUnit> children = new ArrayList<>();
 
-    @Column(name = "unit_name", nullable = false, length = 200)
+    @Column(nullable = false, length = 200)
     private String unitName;
 
-    @Column(name = "unit_code", nullable = false, length = 50)
+    @Column(nullable = false, length = 50)
     private String unitCode;
 
-    @Column(name = "unit_type", nullable = false, length = 50)
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
     private UnitType unitType;
 
-    // Materialized Path Pattern for efficient queries
-    @Column(name = "path", nullable = false, length = 500)
-    private String path; // e.g., "/1/5/23/" for quick hierarchy queries
+    @Column(length = 200)
+    private String path;
 
-    @Column(name = "hierarchy_level", nullable = false)
-    private Integer hierarchyLevel; // 0 = root (organization), 1 = first level, etc.
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer hierarchyLevel = 0;
 
-    @Column(name = "full_path", length = 1000)
-    private String fullPath; // Human-readable: "ACME/Sales/Enterprise/NY Office"
+    @Column(length = 1000)
+    private String fullPath;
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    @Builder.Default
+    private UnitStatus status = UnitStatus.ACTIVE;
 
-    // Contact information
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private JsonNode metadata;
+
     @Column(name = "manager_name", length = 100)
     private String managerName;
 
@@ -74,27 +82,22 @@ public class OrganizationUnit extends SoftDeletableAuditable<Long> {
     @Column(name = "manager_phone", length = 30)
     private String managerPhone;
 
-
-    // Status and settings
-    @Column(name = "status", length = 20)
-    @Enumerated(EnumType.STRING)
-    private UnitStatus status = UnitStatus.ACTIVE;
-
     @Column(name = "is_leaf")
-    private Boolean isLeaf = false; // True if no children allowed
+    @Builder.Default
+    private Boolean isLeaf = false;
 
     @Column(name = "employee_count")
+    @Builder.Default
     private Integer employeeCount = 0;
 
-    // Metadata
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "metadata", columnDefinition = "jsonb")
-    private JsonNode metadata; // Additional custom fields
-
     @Column(name = "display_order")
-    private Integer displayOrder = 0; // For sorting
+    @Builder.Default
+    private Integer displayOrder = 0;
 
-    // Helper methods
+    @Builder.Default
+    @Column(name = "depth")
+    private Integer depth = 0;
+
     @Transient
     public boolean isRoot() {
         return parent == null;
@@ -103,12 +106,6 @@ public class OrganizationUnit extends SoftDeletableAuditable<Long> {
     @Transient
     public boolean hasChildren() {
         return children != null && !children.isEmpty();
-    }
-
-    @Transient
-    public String getPathArray() {
-        // Returns ["1", "5", "23"] for path "/1/5/23/"
-        return path.replaceAll("^/|/$", "");
     }
 
     @Transient
@@ -122,21 +119,37 @@ public class OrganizationUnit extends SoftDeletableAuditable<Long> {
                 .collect(Collectors.toList());
     }
 
-    @PrePersist
+    // ✅ FIXED: Use @PostPersist for path computation
+    @PostPersist
+    private void computePathAfterPersist() {
+        updatePath();
+    }
+
     @PreUpdate
     private void updateComputedFields() {
-        // Update path
+        this.isLeaf = (children == null || children.isEmpty());
+        // Only update path if parent changed
+        if (parent != null && !path.startsWith(parent.getPath())) {
+            updatePath();
+        }
+    }
+
+    // ✅ NEW: Separate method for path computation
+    public void updatePath() {
+        if (getId() == null) {
+            throw new IllegalStateException("Cannot compute path before entity is persisted");
+        }
+
         if (parent == null) {
             this.path = "/" + getId() + "/";
             this.hierarchyLevel = 0;
+            this.depth = 0;
             this.fullPath = unitName;
         } else {
             this.path = parent.getPath() + getId() + "/";
             this.hierarchyLevel = parent.getHierarchyLevel() + 1;
-            this.fullPath = parent.getFullPath() + "/" + unitName;
+            this.depth = parent.getDepth() + 1;
+            this.fullPath = parent.getFullPath() + " > " + unitName;
         }
-
-        // Update leaf status
-        this.isLeaf = (children == null || children.isEmpty());
     }
 }

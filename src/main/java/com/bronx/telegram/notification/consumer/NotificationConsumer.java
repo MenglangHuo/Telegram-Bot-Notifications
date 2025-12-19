@@ -299,24 +299,24 @@ public class NotificationConsumer {
         message.append(n.getMessage());
 
         // Add scope information
-        String scope = getScopeInfo(n);
-        if (scope != null) {
-            message.append("\n\n<i>").append(scope).append("</i>");
-        }
+//        String scope = getScopeInfo(n);
+//        if (scope != null) {
+//            message.append("\n\n<i>").append(scope).append("</i>");
+//        }
 
         return message.toString();
     }
 
-    private String getScopeInfo(NotificationChannel n) {
-        if (n.getDepartment() != null) {
-            return "📍 Department: " + n.getDepartment().getDepartmentName();
-        } else if (n.getDivision() != null) {
-            return "📍 Division: " + n.getDivision().getDivisionName();
-        } else if (n.getOrganization() != null) {
-            return "📍 Organization: " + n.getOrganization().getOrganizationName();
-        }
-        return null;
-    }
+//    private String getScopeInfo(NotificationChannel n) {
+//        if (n.getDepartment() != null) {
+//            return "📍 Department: " + n.getDepartment().getDepartmentName();
+//        } else if (n.getDivision() != null) {
+//            return "📍 Division: " + n.getDivision().getDivisionName();
+//        } else if (n.getOrganization() != null) {
+//            return "📍 Organization: " + n.getOrganization().getOrganizationName();
+//        }
+//        return null;
+//    }
 
     /**
      * ✅ FIX: Get bot for subscription with fallback
