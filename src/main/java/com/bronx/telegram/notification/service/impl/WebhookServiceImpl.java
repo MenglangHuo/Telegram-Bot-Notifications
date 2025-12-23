@@ -52,6 +52,7 @@ public class WebhookServiceImpl implements WebhookService {
             } else if (update.has("channel_post")) {
                 extractChannelPostDetails(webhook, update.get("channel_post"));
             }
+            log.info("Received webhook update {}: {}", updateId, update.toString());
 
             webhook = webhookRepository.save(webhook);
 
@@ -69,6 +70,7 @@ public class WebhookServiceImpl implements WebhookService {
     private void extractMessageDetails(Webhook webhook, JsonNode message) {
         if (message.has("chat")) {
             webhook.setChatId(message.get("chat").get("id").asText());
+
         }
 
         if (message.has("from")) {
@@ -82,6 +84,7 @@ public class WebhookServiceImpl implements WebhookService {
         if (message.has("text")) {
             String text = message.get("text").asText();
             webhook.setMessageType("text");
+            webhook.setCommand(text);
 
             if (text.startsWith("/")) {
                 webhook.setCommand(text.split(" ")[0]);
@@ -102,6 +105,12 @@ public class WebhookServiceImpl implements WebhookService {
 
         if (callbackQuery.has("message") && callbackQuery.get("message").has("chat")) {
             webhook.setChatId(callbackQuery.get("message").get("chat").get("id").asText());
+        }
+        // ✅ Extract callback data
+        if (callbackQuery.has("data")) {
+            String callbackData = callbackQuery.get("data").asText();
+            webhook.setCommand(callbackData);
+            log.debug("Callback data: {}", callbackData);
         }
     }
 
@@ -157,6 +166,12 @@ public class WebhookServiceImpl implements WebhookService {
 
         if (channelPost.has("chat")) {
             webhook.setChatId(channelPost.get("chat").get("id").asText());
+        }
+
+        if (channelPost.has("text")) {
+            String text = channelPost.get("text").asText();
+            webhook.setCommand(text);
+            log.debug("Channel post text: {}", text);
         }
     }
 }

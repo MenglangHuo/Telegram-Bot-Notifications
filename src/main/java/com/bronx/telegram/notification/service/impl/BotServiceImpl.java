@@ -57,7 +57,9 @@ public class BotServiceImpl implements BotService {
             String webhookUrl = String.format("%s%s/%s", baseUrl, path, savedBot.getId());
             savedBot.setWebhookUrl(webhookUrl);
             savedBot = telegramBotRepository.save(savedBot);
+
             telegramBotService.registerBot(savedBot);
+
             log.info("Created bot {} for subscription {} (scope: {})",
                     savedBot.getBotUsername(),
                     subscription.getId(),

@@ -50,14 +50,13 @@ public class Employee extends SoftDeletableAuditable<Long> {
     @Column(name = "role", length = 50)
     private String role;
 
-    // ✅ FIX: Rename to match Telegram's user_id (it's a Long, not String)
+
     @Column(name = "telegram_user_id", length = 50)
     private String telegramUserId;
 
     @Column(name = "telegram_username", length = 100)
     private String telegramUsername;
 
-    // ✅ ENHANCEMENT: Store chat_id separately (different from user_id)
     @Column(name = "telegram_chat_id", length = 50)
     private String telegramChatId;
 

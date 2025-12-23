@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -35,9 +34,6 @@ public class TelegramBotServiceImpl implements TelegramBotService {
     // ✅ Parse comma-separated list from application.yaml
     @Value("${telegram.webhook.allowed-updates:message,callback_query,my_chat_member,channel_post}")
     private String allowedUpdatesString;
-
-    // Map of bot ID -> bot client (NOT Spring beans)
-//    private final ConcurrentHashMap<Long, TelegramBotClient> botClients = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void initializeBots() {
@@ -112,8 +108,7 @@ public class TelegramBotServiceImpl implements TelegramBotService {
 
             // Parse allowed updates
             List<String> allowedUpdates = Arrays.stream(allowedUpdatesString.split(","))
-                    .map(String::trim)
-                    .collect(Collectors.toList());
+                    .map(String::trim).toList();
 
             // Setup webhook
             log.info("Setting up webhook for bot {}...", bot.getBotUsername());
@@ -145,17 +140,6 @@ public class TelegramBotServiceImpl implements TelegramBotService {
             // Save bot
             botRepository.save(bot);
 
-            // Store client only if webhook succeeded
-//            if (webhookSuccess) {
-////                botClients.put(bot.getId(), client);
-//                log.info("✅ Successfully registered bot: {}",
-//                        bot.getBotUsername());
-//                bot.setWebhookVerified(true);
-//                bot.setStatus(BotStatus.ACTIVE);
-//                bot.setLastErrorMessage(null);
-//            }
-
-
         } catch (Exception e) {
             log.error("❌ Failed to register bot {}", bot.getId(), e);
             bot.setLastErrorMessage(e.getMessage());
@@ -166,11 +150,6 @@ public class TelegramBotServiceImpl implements TelegramBotService {
     }
 
     public void unregisterBot(Long botId) {
-//        TelegramBotClient client = botClients.remove(botId);
-//        if (client != null) {
-//            client.shutdown();
-//            log.info("Unregistered bot: {}", botId);
-//        }
         botClientFactory.invalidateClient(botId);
     }
 

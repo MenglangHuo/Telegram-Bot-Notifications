@@ -23,13 +23,51 @@ import java.util.Optional;
 
 public class EmployeeRegistrationService {
     private final EmployeeRepository employeeRepository;
-    private final PartnerRepository partnerRepository;
     private final CompanyRepository companyRepository;
     private final OrganizationUnitRepository organizationUnitRepository;
     private final TelegramBotService telegramBotService;
     private final SubscriptionRepository subscriptionRepository;
     private final EmployeeMapper employeeMapper;
 
+    public RegistrationResult registerEmployeeFromTelegram(
+            EmployeeTelegramRequest request
+    ){
+        log.info("🔍 Registration attempt - Email: {}",
+                request.email());
+        Employee employee = employeeRepository.findByEmployeeCode(request.employeeCode()).orElse(null);
+        if(employee==null && request.email()!=null) {
+            employee = employeeRepository.findByEmail(request.email()).orElse(null);
+        }
+        if (employee == null) {
+            log.warn("❌ Employee not found ");
+            return RegistrationResult.notFound(
+                    "Employee not found. Please contact your HR department.");
+        }
+        employee.setContact(request.contact());
+        employee.setTelegramUserId(request.telegramUserId());
+        employee.setTelegramUsername(request.telegramUsername());
+        employee.setTelegramChatId(request.telegramChatId());
+        employee.setRegisteredAt(Instant.now());
+        employee.setStatus(BotStatus.ACTIVE);
+
+        if(request.employeeCode()!=null)
+            employee.setEmployeeCode(request.employeeCode());
+        if(request.email()!=null)
+            employee.setEmail(request.email());
+        if(request.fullName()!=null)
+            employee.setFullName(request.fullName());
+        if(request.role()!=null)
+            employee.setRole(request.role());
+
+        try{
+            return RegistrationResult.success(employeeRepository.save(employee));
+        }catch (Exception e){
+            log.error("❌ Error during employee registration: {}", e.getMessage(), e);
+            return RegistrationResult.failure(
+                    "An error occurred during registration. Please try again later.");
+        }
+
+    }
     public RegistrationResult registerEmployee(
             String email,
             String telegramUserId,
@@ -51,7 +89,7 @@ public class EmployeeRegistrationService {
             }
 
             // Check if employee is already registered with a DIFFERENT Telegram account
-            if (employee.getTelegramUserId() != null &&
+            if (employee.getTelegramUserId() != null && !employee.getTelegramUserId().isEmpty()&&
                     !employee.getTelegramUserId().equals(telegramUserId)) {
                 log.warn("⚠️ Employee {} already registered with different Telegram account",
                         email);
@@ -89,7 +127,7 @@ public class EmployeeRegistrationService {
                     empUpdated.getEmployeeCode());
 
             // Send welcome message
-            sendWelcomeMessage(empUpdated);
+//            sendWelcomeMessage(empUpdated);
 
             return RegistrationResult.success(empUpdated);
 

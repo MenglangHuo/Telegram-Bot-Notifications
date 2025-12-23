@@ -399,6 +399,88 @@ public class TelegramBotClient {
         }
     }
 
+    /**
+     * Sends a message with a custom keyboard (ReplyKeyboardMarkup or InlineKeyboardMarkup)
+     * * @param chatId       The target chat ID
+     * @param text         The message text
+     * @param parseMode    HTML or MarkdownV2
+     * @param keyboardJson The JSON string representing the keyboard (reply_markup)
+     * @return message_id  The ID of the sent message
+     */
+    public String sendMessageWithKeyboard(String chatId, String text, String parseMode, String keyboardJson) {
+        try {
+            // 1. Basic Validation
+            if (chatId == null || chatId.isEmpty() || text == null || text.trim().isEmpty()) {
+                log.error("❌ Chat ID or Text is null/empty");
+                return null;
+            }
+
+            // 2. Truncate text if it exceeds Telegram limits
+            if (text.length() > MAX_MESSAGE_LENGTH) {
+                text = text.substring(0, MAX_MESSAGE_LENGTH - 3) + "...";
+            }
+
+            // 3. Build the primary JSON payload
+            ObjectNode payloadJson = objectMapper.createObjectNode();
+            payloadJson.put("chat_id", chatId);
+            payloadJson.put("text", text);
+
+            if (parseMode != null && !parseMode.isEmpty()) {
+                payloadJson.put("parse_mode", parseMode);
+            }
+
+            // 4. Parse the keyboardJson string into a JsonNode and add it as 'reply_markup'
+            if (keyboardJson != null && !keyboardJson.isEmpty()) {
+                try {
+                    JsonNode keyboardNode = objectMapper.readTree(keyboardJson);
+                    payloadJson.set("reply_markup", keyboardNode);
+                } catch (JsonProcessingException e) {
+                    log.error("❌ Invalid Keyboard JSON provided: {}", keyboardJson);
+                    // Continue without keyboard or return null based on your preference
+                }
+            }
+
+            String payloadString = objectMapper.writeValueAsString(payloadJson);
+            RequestBody body = RequestBody.create(payloadString, JSON_MEDIA_TYPE);
+
+            // 5. Build and execute the HTTP Request
+            Request request = new Request.Builder()
+                    .url(apiUrl + "/sendMessage")
+                    .post(body)
+                    .build();
+
+            log.debug("📤 Sending keyboard message to chat_id: {}", chatId);
+
+            try (Response response = httpClient.newCall(request).execute()) {
+                if (response.body() == null) {
+                    log.error("❌ Response body is null (status: {})", response.code());
+                    return null;
+                }
+
+                String responseBody = response.body().string();
+                JsonNode result = objectMapper.readTree(responseBody);
+
+                if (response.isSuccessful() && result.get("ok").asBoolean(false)) {
+                    String messageId = result.get("result").get("message_id").asText();
+                    log.info("✅ Keyboard message sent. ID: {}", messageId);
+                    return messageId;
+                } else {
+                    String error = result.has("description") ? result.get("description").asText() : "Unknown";
+                    int errorCode = result.has("error_code") ? result.get("error_code").asInt() : response.code();
+
+                    log.error("❌ Telegram API error [{}]: {}", errorCode, error);
+                    handleTelegramError(errorCode, error, chatId);
+                    return null;
+                }
+            }
+        } catch (IOException e) {
+            log.error("❌ Network error sending keyboard message: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Unexpected error in sendMessageWithKeyboard", e);
+        }
+        return null;
+    }
+
     public String getApiUrl() {
         return apiUrl;
     }
