@@ -2,6 +2,8 @@ package com.bronx.telegram.notification.dto.notification;
 
 import com.bronx.telegram.notification.model.enumz.NotificationEventType;
 import com.bronx.telegram.notification.model.enumz.NotificationPriority;
+import com.bronx.telegram.notification.model.enumz.TelegramMessageType;
+import com.bronx.telegram.notification.model.enumz.TelegramParseMode;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,20 +23,25 @@ public class NotificationMessage implements Serializable {
     private Long notificationId;
     private Long partnerId;
     private Long subscriptionId;
-    private Long organizationId;
-    private Long divisionId;
-    private Long departmentId;
 
+    private boolean isOwnCustom;
+    private TelegramParseMode telegramParseMode=TelegramParseMode.HTML;
     private String title;
     private String message;
-    private JsonNode content;
     private NotificationPriority priority;
     private Integer retryCount;
     private String location;
-    private String method;
-   private NotificationEventType notificationType;
+
+    private NotificationEventType notificationType;
     private Instant queuedAt;
     private Instant receivedAt;
     private Instant processingAt;
+
+    // Media fields
+    private TelegramMessageType mediaType;
+    private String mediaUrl;
+    private String mediaFileId;
+    private String mediaCaption;
+    private JsonNode mediaMetadata;
 
 }

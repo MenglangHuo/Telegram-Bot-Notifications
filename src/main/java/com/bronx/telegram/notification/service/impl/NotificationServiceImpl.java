@@ -3,19 +3,21 @@ package com.bronx.telegram.notification.service.impl;
 import com.bronx.telegram.notification.dto.ValidationResult;
 import com.bronx.telegram.notification.dto.checkIn.ChannelRequest;
 import com.bronx.telegram.notification.dto.checkIn.CheckInRequest;
+import com.bronx.telegram.notification.dto.notification.MediaMetaData;
 import com.bronx.telegram.notification.exceptions.BusinessException;
 import com.bronx.telegram.notification.model.entity.*;
 import com.bronx.telegram.notification.model.enumz.NotificationEventType;
 import com.bronx.telegram.notification.model.enumz.NotificationStatus;
+import com.bronx.telegram.notification.model.enumz.TelegramMessageType;
 import com.bronx.telegram.notification.repository.*;
 import com.bronx.telegram.notification.service.NotificationService;
 import com.bronx.telegram.notification.service.SubscriptionValidateService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final SubscriptionRepository subscriptionRepository;
     private final NotificationQueueServiceImpl queueService;
     private final SubscriptionValidateService validationService;
+    private final ObjectMapper objectMapper;
 
     @Override
     public NotificationPersonal createPersonalNotification(Long partnerId, Long subscriptionId, String employeeCode, CheckInRequest request) {
@@ -48,38 +51,51 @@ public class NotificationServiceImpl implements NotificationService {
                 .findByPartnerIdAndEmployeeCode(partnerId, employeeCode)
                 .orElseThrow(() -> new EntityNotFoundException("Employee not found"));
 
-
-//        if (!employee.isRegisteredWithTelegram()) {
-//            throw new IllegalStateException("Employee has not registered with Telegram");
-//        }
         // Validate employee belongs to subscription scope
         validateEmployeeInScope(employee, subscription);
+
         NotificationPersonal notification = new NotificationPersonal();
         notification.setPartner(subscription.getPartner());
         notification.setSubscription(subscription);
         notification.setOrganizationUnit(employee.getOrganizationUnit());
         notification.setEmployee(employee);
-        notification.setNotificationType(NotificationEventType.CHECK_IN);
-        notification.setTitle(request.getTitle());
+        notification.setNotificationType(NotificationEventType.CUSTOM_EVENT);
+
         notification.setMessage(request.getMessage());
-        notification.setContent(request.getData());
         notification.setPriority(request.getPriority());
         notification.setStatus(NotificationStatus.QUEUED);
         notification.setQueuedAt(Instant.now());
-        notification.setMethod(request.getMethod());
-        notification.setLocation(request.getLocation());
-        notification.setReceivedAt(Instant.parse(request.getCheckInTime()));
+        notification.setOwnCustom(request.getIsOwnCustom());
+
+        notification.setTelegramParseMode(request.getTelegramParseMode());
+        if(request.getIsOwnCustom().equals(Boolean.FALSE)){
+            notification.setLocation(request.getLocation());
+            notification.setReceivedAt(Instant.parse(request.getCheckInTime()));
+            notification.setTitle(request.getTitle());
+        }
+
+        // Set media fields
+        notification.setMediaType(TelegramMessageType.TEXT); // Default to text
+
+        if (request.getMediaUrl() != null) {
+            notification.setMediaUrl(request.getMediaUrl());
+            notification.setMediaType(request.getMediaType());
+            notification.setTitle(request.getTitle());
+            if( request.getPerformer()!=null && request.getTitle()!=null){
+                if(request.getDuration()==null){
+                    request.setDuration(0);
+                }
+                MediaMetaData mediaMetaData=new MediaMetaData(request.getTitle(),request.getPerformer(),request.getDuration(),request.getMediaCaption());
+                notification.setMetaData(objectMapper.valueToTree(mediaMetaData));
+            }
+        }
+        if (request.getMediaCaption() != null) {
+            notification.setMediaCaption(request.getMediaCaption());
+        }
         notification = personalRepository.save(notification);
-
-//        // Increment subscription counter
-//        subscription.setNotificationsSentThisMonth(
-//                subscription.getNotificationsSentThisMonth() + 1);
         subscriptionRepository.save(subscription);
-
         // Queue for processing
         queueService.queuePersonalNotification(notification);
-
-
         return notification;
     }
 
@@ -131,28 +147,47 @@ public class NotificationServiceImpl implements NotificationService {
             throw new IllegalArgumentException("Channel does not belong to subscription");
         }
 
-
         log.info("notification type: {}",request.getEventType());
         NotificationChannel notification = new NotificationChannel();
         notification.setPartner(subscription.getPartner());
         notification.setSubscription(subscription);
         notification.setOrganizationUnit(channel.getOrganizationUnit());
         notification.setTelegramChannel(channel);
-        notification.setTitle(request.getTitle());
         notification.setMessage(request.getMessage());
         notification.setNotificationType(request.getEventType());
         notification.setPriority(request.getPriority());
         notification.setStatus(NotificationStatus.QUEUED);
         notification.setQueuedAt(Instant.now());
         notification.setReceivedAt(Instant.now());
+//        notification.setMediaType(request.getMediaType());
+//        notification.setMediaUrl(request.getMediaUrl());
+//        notification.setMediaFileId(request.getMediaFileId());
+//        notification.setMediaCaption(request.getMediaCaption());
+        notification.setTelegramParseMode(request.getTelegramParseMode());
 
+        if(request.getIsOwnCustom().equals(Boolean.FALSE)){
+            notification.setTitle(request.getTitle());
+        }
+
+        // Set media fields
+        notification.setMediaType(TelegramMessageType.TEXT);
+
+        if (request.getMediaUrl() != null) {
+            notification.setMediaUrl(request.getMediaUrl());
+            notification.setMediaType(request.getMediaType());
+            if( request.getPerformer()!=null && request.getMediaCaption()!=null){
+                if(request.getDuration()==null){
+                    request.setDuration(0);
+                }
+                MediaMetaData mediaMetaData=new MediaMetaData(request.getTitle(),request.getPerformer(),request.getDuration(),request.getMediaCaption());
+                notification.setMetaData(objectMapper.valueToTree(mediaMetaData));
+            }
+        }
+        if (request.getMediaCaption() != null) {
+            notification.setMediaCaption(request.getMediaCaption());
+        }
         notification = channelRepository.save(notification);
-
-        // Increment counter
-//        subscription.setNotificationsSentThisMonth(
-//                subscription.getNotificationsSentThisMonth() + 1);
         subscriptionRepository.save(subscription);
-
         queueService.queueChannelNotification(notification);
 
         log.info("Created channel notification {} for channel {} ",
@@ -211,114 +246,4 @@ public class NotificationServiceImpl implements NotificationService {
             }
         }
     }
-
-//    public NotificationPersonal createPersonalNotification(Long companyId, String employeeId,
-//                                                           CheckInRequest request) {
-//        Company company = companyRepository.findById(companyId)
-//                .orElseThrow(() -> new EntityNotFoundException("Company not found"));
-//
-//        //get by email
-//        Employee employee = employeeRepository.findByCompanyIdAndEmployeeId(companyId, employeeId)
-//                .orElseThrow(() -> new EntityNotFoundException("Employee not found"));
-//
-//        if (employee.getTelegramChatId() == null) {
-//            throw new IllegalStateException("Employee has not registered with Telegram");
-//        }
-//
-//        NotificationPersonal notification = new NotificationPersonal();
-//        notification.setCompany(company);
-//        notification.setEmployee(employee);
-//        notification.setNotificationType("CHECK_IN");
-//        notification.setTitle(request.getTitle());
-//        notification.setMessage(request.getMessage());
-//        notification.setContent(request.getData());
-//        notification.setPriority(request.getPriority());
-//        notification.setStatus(NotificationStatus.QUEUED);
-//        notification.setQueuedAt(Instant.now());
-//        notification.setMethod(request.getMethod());
-//        notification.setLocation(request.getLocation());
-//        notification.setReceivedAt(LocalDateTime.parse(request.getCheckInTime()));
-//        notification = personalRepository.save(notification);
-//
-//        // Queue for processing
-//        queueService.queuePersonalNotification(notification);
-//
-//        log.info("Created personal notification {} for employee {}",
-//                notification.getId(), employeeId);
-//
-//        return notification;
-//    }
-//
-//
-//    public NotificationChannel createChannelNotification(Long companyId,
-//                                                         ChannelRequest request) {
-//        Company company = companyRepository.findById(companyId)
-//                .orElseThrow(() -> new EntityNotFoundException("Company not found"));
-//
-//        TelegramChannel channel = telegramChannelRepository.findById(channelId)
-//                .orElseThrow(() -> new EntityNotFoundException("Channel not found"));
-//
-//        if (!channel.getCompany().getId().equals(companyId)) {
-//            throw new IllegalArgumentException("Channel does not belong to company");
-//        }
-//
-////        if (!channel.getIsBotAdmin()) {
-////            throw new IllegalStateException("Bot is not admin in channel");
-////        }
-//
-//        NotificationChannel notification = new NotificationChannel();
-//        notification.setCompany(company);
-//        notification.setTelegramChannel(channel);
-//        notification.setNotificationType(request.getType());
-//        notification.setTitle(request.getTitle());
-//        notification.setMessage(request.getMessage());
-//        notification.setContent(request.getContent());
-//        notification.setPriority(request.getPriority());
-//        notification.setStatus(NotificationStatus.QUEUED);
-//        notification.setQueuedAt(Instant.now());
-//        notification = channelRepository.save(notification);
-//
-//        // Queue for processing
-//        queueService.queueChannelNotification(notification);
-//
-//        log.info("Created channel notification {} for channel {}",
-//                notification.getId(), channel.getChatName());
-//
-//        return notification;
-//    }
-
-//    public void sendCheckInNotification(Long companyId, CheckInRequest request) {
-//        // Find manager or head manager employees
-//        Company com=companyRepository.findById(companyId).orElseThrow(() -> new EntityNotFoundException("Company not found"));
-//        List<Employee> managers = employeeRepository.findManagersByCompany(com);
-//
-//        for (Employee manager : managers) {
-//            if (manager.getTelegramChatId() != null) {
-//                NotificationRequest notifRequest = NotificationRequest.builder()
-//                        .type("CHECK_IN")
-//                        .title("Check-In Alert")
-//                        .message(formatCheckInMessage(request))
-//                        .priority(NotificationPriority.HIGH)
-//                        .build();
-//
-//                createPersonalNotification(companyId, manager.getEmployeeId(), request);
-//            }
-//        }
-//    }
-
-//    private String formatCheckInMessage(CheckInRequest request) {
-//        return String.format(
-//                "<b>Check-In Alert</b>\n\n" +
-//                        "Employee: %s\n" +
-//                        "Time: %s\n" +
-//                        "Location: %s\n" +
-//                        "Status: %s",
-//                        "Method: %s",
-//                request.getEmployeeName(),
-//                request.getCheckInTime(),
-//                request.getLocation(),
-//                request.getStatus(),
-//                request.getMethod()
-//        );
-//    }
 }

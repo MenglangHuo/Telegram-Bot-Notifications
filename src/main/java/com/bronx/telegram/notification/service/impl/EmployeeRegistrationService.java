@@ -1,6 +1,5 @@
 package com.bronx.telegram.notification.service.impl;
 
-import com.bronx.telegram.notification.dto.ValidationResult;
 import com.bronx.telegram.notification.dto.employee.*;
 import com.bronx.telegram.notification.exceptions.BusinessException;
 import com.bronx.telegram.notification.exceptions.ResourceNotFoundException;

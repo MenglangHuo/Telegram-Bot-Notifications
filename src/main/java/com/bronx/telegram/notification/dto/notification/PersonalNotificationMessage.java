@@ -14,4 +14,5 @@ public class PersonalNotificationMessage extends NotificationMessage {
     private String telegramChatId;
     private String employeeEmail;
     private String employeeName;
+
 }

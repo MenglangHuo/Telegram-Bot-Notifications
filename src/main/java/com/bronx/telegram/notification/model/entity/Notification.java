@@ -3,7 +3,6 @@ import com.bronx.telegram.notification.model.audit.SoftDeletableAuditable;
 import com.bronx.telegram.notification.model.enumz.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -11,10 +10,6 @@ import org.hibernate.type.SqlTypes;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 
 @Getter
@@ -44,19 +39,16 @@ public abstract class Notification extends SoftDeletableAuditable<Long> implemen
     @Column(name = "location",length = 100)
     private String location;
 
-    @Column(name = "method",length = 50)
-    private String method; //QR , FACE_ID, ...
-
     @Column(name = "is_own_custom")
-    private boolean isOwnCustom=false;
+    private boolean isOwnCustom=true;
 
     @Column(name = "parse_mode",length = 30)
     @Enumerated(EnumType.STRING)
-    private ParseMode parseMode;
+    private TelegramParseMode telegramParseMode;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "content", columnDefinition = "jsonb")
-    private JsonNode content; // Additional structured data
+    @Column(name = "meta_data", columnDefinition = "jsonb")
+    private JsonNode metaData; // Additional structured data
 
     @Column(name = "notification_type", nullable = false, length = 50)
     @Enumerated(EnumType.STRING)

@@ -2,7 +2,6 @@ package com.bronx.telegram.notification.service.impl;
 import com.bronx.telegram.notification.dto.employee.RegistrationResult;
 import com.bronx.telegram.notification.dto.webhook.WebhookMessage;
 import com.bronx.telegram.notification.model.entity.Webhook;
-import com.bronx.telegram.notification.model.enumz.ParseMode;
 import com.bronx.telegram.notification.service.WebhookCommandService;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;

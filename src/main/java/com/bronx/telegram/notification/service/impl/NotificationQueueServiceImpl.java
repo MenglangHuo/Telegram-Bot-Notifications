@@ -31,7 +31,6 @@ public class NotificationQueueServiceImpl implements NotificationQueueService {
                     .notificationType(notification.getNotificationType())
                     .title(notification.getTitle())
                     .message(notification.getMessage())
-                    .content(notification.getContent())
                     .priority(notification.getPriority())
                     .retryCount(notification.getRetryCount())
                     .queuedAt(notification.getQueuedAt())
@@ -41,6 +40,15 @@ public class NotificationQueueServiceImpl implements NotificationQueueService {
                     .employeeName(notification.getEmployee().getFullName())
                     .receivedAt(notification.getReceivedAt())
                     .location(notification.getLocation())
+                    .isOwnCustom(notification.isOwnCustom())
+                    .telegramParseMode(notification.getTelegramParseMode())
+                    .mediaMetadata(notification.getMetaData())
+
+                    // Media fields
+                    .mediaType(notification.getMediaType())
+                    .mediaUrl(notification.getMediaUrl())
+                    .mediaFileId(notification.getMediaFileId())
+                    .mediaCaption(notification.getMediaCaption())
                     .build();
 
             rabbitTemplate.convertAndSend(
@@ -76,13 +84,17 @@ public class NotificationQueueServiceImpl implements NotificationQueueService {
                     .notificationType(notification.getNotificationType())
                     .title(notification.getTitle())
                     .message(notification.getMessage())
-                    .content(notification.getContent())
                     .priority(notification.getPriority())
                     .retryCount(notification.getRetryCount())
                     .queuedAt(notification.getQueuedAt())
                     .channelId(notification.getTelegramChannel().getId())
                     .chatId(notification.getTelegramChannel().getChatId())
                     .botId(notification.getTelegramChannel().getBot().getId())
+                    // Media fields
+                    .mediaType(notification.getMediaType())
+                    .mediaUrl(notification.getMediaUrl())
+                    .mediaFileId(notification.getMediaFileId())
+                    .mediaCaption(notification.getMediaCaption())
                     .build();
 
             rabbitTemplate.convertAndSend(

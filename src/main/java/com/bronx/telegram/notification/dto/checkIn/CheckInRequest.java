@@ -2,8 +2,8 @@ package com.bronx.telegram.notification.dto.checkIn;
 
 import com.bronx.telegram.notification.model.enumz.NotificationEventType;
 import com.bronx.telegram.notification.model.enumz.NotificationPriority;
-import com.bronx.telegram.notification.model.enumz.ParseMode;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.bronx.telegram.notification.model.enumz.TelegramMessageType;
+import com.bronx.telegram.notification.model.enumz.TelegramParseMode;
 import lombok.AllArgsConstructor;
 
 import lombok.Data;
@@ -16,16 +16,30 @@ public class CheckInRequest {
 
     private String employeeCode;
     private String organizationCode;
+
+    private Boolean isOwnCustom=true;
+    //HTML OR MARKDOWN
+    private TelegramParseMode telegramParseMode;
+
+    //ownCustom =false
     private NotificationEventType notificationType;
     private String checkInTime;
-
     private String title;
     private String message;
     private String location;
-    private String method;
-    private JsonNode data;
-    private ParseMode parseMode; //markdown or html
-    private Boolean isOwnCustom;
+
     private NotificationPriority priority = NotificationPriority.NORMAL;
+
+    // Media fields
+    private TelegramMessageType mediaType;
+    private String mediaUrl;
+    private String mediaFileId; // For reusing uploaded files
+    private String mediaCaption;
+    private String fileName;
+    private String fileData;
+
+    private String performer;
+    private Integer duration;
+
 }
 

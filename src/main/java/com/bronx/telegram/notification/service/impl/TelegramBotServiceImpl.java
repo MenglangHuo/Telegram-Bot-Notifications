@@ -1,4 +1,5 @@
 package com.bronx.telegram.notification.service.impl;
+import com.bronx.telegram.notification.configs.TelegramBotClientFactory;
 import com.bronx.telegram.notification.model.entity.TelegramBot;
 import com.bronx.telegram.notification.model.enumz.BotStatus;
 import com.bronx.telegram.notification.repository.TelegramBotRepository;
@@ -9,15 +10,11 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +23,7 @@ import java.util.stream.Collectors;
 public class TelegramBotServiceImpl implements TelegramBotService {
 
     private final TelegramBotRepository botRepository;
+    private final TelegramBotClientFactory botClientFactory;
 
     // ✅ Use @Value to inject configuration
     @Value("${telegram.webhook.base-url}")
@@ -39,9 +37,8 @@ public class TelegramBotServiceImpl implements TelegramBotService {
     private String allowedUpdatesString;
 
     // Map of bot ID -> bot client (NOT Spring beans)
-    private final ConcurrentHashMap<Long, TelegramBotClient> botClients = new ConcurrentHashMap<>();
+//    private final ConcurrentHashMap<Long, TelegramBotClient> botClients = new ConcurrentHashMap<>();
 
-    @EventListener(ApplicationReadyEvent.class) //every things are ready
     @PostConstruct
     public void initializeBots() {
         log.info("🚀 Initializing Telegram bots...");
@@ -97,7 +94,7 @@ public class TelegramBotServiceImpl implements TelegramBotService {
                     bot.getBotName());
 
             // Create client instance
-            TelegramBotClient client = new TelegramBotClient(bot.getBotToken());
+            TelegramBotClient client = botClientFactory.getClient(String.valueOf(bot.getId()));
 
             // Verify token
             JsonNode botInfo = client.verifyToken();
@@ -125,7 +122,6 @@ public class TelegramBotServiceImpl implements TelegramBotService {
             if (webhookSuccess) {
                 bot.setWebhookVerified(true);
                 bot.setStatus(BotStatus.ACTIVE);
-//                bot.setErrorCount(0);
                 bot.setLastErrorMessage(null);
                 log.info("✅ Webhook configured: {}", webhookUrl);
 
@@ -150,29 +146,32 @@ public class TelegramBotServiceImpl implements TelegramBotService {
             botRepository.save(bot);
 
             // Store client only if webhook succeeded
-            if (webhookSuccess) {
-                botClients.put(bot.getId(), client);
-                log.info("✅ Successfully registered bot: {}",
-                        bot.getBotUsername());
-            }
+//            if (webhookSuccess) {
+////                botClients.put(bot.getId(), client);
+//                log.info("✅ Successfully registered bot: {}",
+//                        bot.getBotUsername());
+//                bot.setWebhookVerified(true);
+//                bot.setStatus(BotStatus.ACTIVE);
+//                bot.setLastErrorMessage(null);
+//            }
+
 
         } catch (Exception e) {
             log.error("❌ Failed to register bot {}", bot.getId(), e);
-//            bot.setStatus(BotStatus.ERROR);
             bot.setLastErrorMessage(e.getMessage());
             bot.setLastErrorAt(Instant.now());
-//            bot.setErrorCount(bot.getErrorCount() + 1);
             botRepository.save(bot);
             throw new RuntimeException("Bot registration failed: " + e.getMessage(), e);
         }
     }
 
     public void unregisterBot(Long botId) {
-        TelegramBotClient client = botClients.remove(botId);
-        if (client != null) {
-            client.shutdown();
-            log.info("Unregistered bot: {}", botId);
-        }
+//        TelegramBotClient client = botClients.remove(botId);
+//        if (client != null) {
+//            client.shutdown();
+//            log.info("Unregistered bot: {}", botId);
+//        }
+        botClientFactory.invalidateClient(botId);
     }
 
     @Override
@@ -180,33 +179,34 @@ public class TelegramBotServiceImpl implements TelegramBotService {
         return null;
     }
     public TelegramBotClient getBotClient(Long botId) {
-        return botClients.get(botId);
+        return botClientFactory.getClient(String.valueOf(botId));
     }
 
     @PreDestroy
     public void shutdown() {
         log.info("Shutting down all Telegram bots...");
+        botClientFactory.shutdown();
 
-        botClients.forEach((botId, client) -> {
-            try {
-                client.shutdown();
-                log.info("Shutdown bot: {}", botId);
-            } catch (Exception e) {
-                log.error("Error shutting down bot {}", botId, e);
-            }
-        });
-
-        botClients.clear();
+//        botClients.forEach((botId, client) -> {
+//            try {
+//                client.shutdown();
+//                log.info("Shutdown bot: {}", botId);
+//            } catch (Exception e) {
+//                log.error("Error shutting down bot {}", botId, e);
+//            }
+//        });
+//
+//        botClients.clear();
         log.info("All bots shutdown completed");
     }
 
-    public boolean isBotRegistered(Long botId) {
-        return botClients.containsKey(botId);
-    }
+//    public boolean isBotRegistered(Long botId) {
+//        return botClients.containsKey(botId);
+//    }
 
-    public List<Long> getRegisteredBotIds() {
-        return List.copyOf(botClients.keySet());
-    }
+//    public List<Long> getRegisteredBotIds() {
+//        return List.copyOf(botClients.keySet());
+//    }
 
     public void refreshBot(Long botId) {
         unregisterBot(botId);

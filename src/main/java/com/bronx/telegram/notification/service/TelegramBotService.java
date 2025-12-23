@@ -10,7 +10,7 @@ public interface TelegramBotService {
     TelegramBot findBotForCompany(Long companyId);
     TelegramBotClient getBotClient(Long botId);
     void shutdown();
-    boolean isBotRegistered(Long botId);
+//    boolean isBotRegistered(Long botId);
     void refreshBot(Long botId);
     TelegramBot getBotForSubscription(Long subscriptionId);
     boolean sendPersonalMessage(

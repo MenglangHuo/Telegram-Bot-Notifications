@@ -10,6 +10,7 @@ import okhttp3.*;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class TelegramBotClient {
@@ -17,6 +18,7 @@ public class TelegramBotClient {
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String apiUrl;
+    private final AtomicInteger requestCount = new AtomicInteger(0);
 
     private static final MediaType JSON_MEDIA_TYPE =
             MediaType.get("application/json; charset=utf-8");
@@ -26,17 +28,39 @@ public class TelegramBotClient {
         this.botToken = botToken;
         this.apiUrl = "https://api.telegram.org/bot" + botToken;
         this.objectMapper = new ObjectMapper();
+        // Enhanced HTTP client with connection pooling
+        ConnectionPool connectionPool = new ConnectionPool(
+                10,                    // Max idle connections
+                5, TimeUnit.MINUTES    // Keep-alive duration
+        );
+
         this.httpClient = new OkHttpClient.Builder()
+                .connectionPool(connectionPool)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .retryOnConnectionFailure(true)
+                .addInterceptor(chain -> {
+                    Request request = chain.request();
+                    requestCount.incrementAndGet();
+
+                    // Add custom headers
+                    request = request.newBuilder()
+                            .addHeader("Connection", "keep-alive")
+                            .build();
+
+                    return chain.proceed(request);
+                })
                 .build();
     }
+    public int getRequestCount() {
+        return requestCount.get();
+    }
 
-    /**
-     * ✅ ENHANCED: Verify bot token with better error handling
-     */
+    public void resetRequestCount() {
+        requestCount.set(0);
+    }
+
     public JsonNode verifyToken() {
         try {
             Request request = new Request.Builder()
@@ -76,9 +100,6 @@ public class TelegramBotClient {
         return null;
     }
 
-    /**
-     * ✅ ENHANCED: Set webhook with validation
-     */
     public boolean setWebhook(String webhookUrl, List<String> allowedUpdates) {
         try {
             // Validate webhook URL
@@ -145,9 +166,6 @@ public class TelegramBotClient {
         return false;
     }
 
-    /**
-     * ✅ ENHANCED: Get webhook info
-     */
     public JsonNode getWebhookInfo() {
         try {
             Request request = new Request.Builder()
@@ -191,9 +209,6 @@ public class TelegramBotClient {
         return null;
     }
 
-    /**
-     * ✅ ENHANCED: Send message with comprehensive error handling
-     */
     public String sendMessageWithReturn(String chatId, String text, Boolean silent,
                                         String parseMode, Integer replyToMessageId) {
         try {
@@ -298,9 +313,6 @@ public class TelegramBotClient {
         return null;
     }
 
-    /**
-     * ✅ NEW: Handle specific Telegram API errors
-     */
     private void handleTelegramError(Integer errorCode, String error, String chatId) {
         if (errorCode == null) return;
 
@@ -326,9 +338,6 @@ public class TelegramBotClient {
         }
     }
 
-    /**
-     * ✅ ENHANCED: Pin message
-     */
     public boolean pinMessage(String chatId, String messageId) {
         try {
             ObjectNode json = objectMapper.createObjectNode();
@@ -371,6 +380,9 @@ public class TelegramBotClient {
 
     public void shutdown() {
         try {
+            log.info("🛑 Shutting down TelegramBotClient (processed {} requests)",
+                    requestCount.get());
+
             httpClient.dispatcher().executorService().shutdown();
             httpClient.connectionPool().evictAll();
 
@@ -379,169 +391,22 @@ public class TelegramBotClient {
                 httpClient.dispatcher().executorService().shutdownNow();
             }
 
-            log.info("TelegramBotClient shutdown completed");
+            log.info("✅ TelegramBotClient shutdown completed");
         } catch (InterruptedException e) {
-            log.error("Error during shutdown", e);
+            log.error("❌ Error during shutdown", e);
             httpClient.dispatcher().executorService().shutdownNow();
             Thread.currentThread().interrupt();
         }
     }
-    /**
-     * Delete webhook - useful for debugging
-     */
-//    public boolean deleteWebhook() {
-//        try {
-//            ObjectNode json = objectMapper.createObjectNode();
-//            json.put("drop_pending_updates", true);
-//
-//            String payload = objectMapper.writeValueAsString(json);
-//            RequestBody body = RequestBody.create(payload, JSON_MEDIA_TYPE);
-//
-//            Request request = new Request.Builder()
-//                    .url(apiUrl + "/deleteWebhook")
-//                    .post(body)
-//                    .build();
-//
-//            try (Response response = httpClient.newCall(request).execute()) {
-//                if (response.isSuccessful() && response.body() != null) {
-//                    String responseBody = response.body().string();
-//                    JsonNode result = objectMapper.readTree(responseBody);
-//                    boolean ok = result.get("ok").asBoolean(false);
-//
-//                    if (ok) {
-//                        log.info("✅ Webhook deleted");
-//                    }
-//                    return ok;
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("Failed to delete webhook", e);
-//        }
-//        return false;
-//    }
 
-    /**
-     * Delete message
-     */
-//    public boolean deleteMessage(String chatId, String messageId) {
-//        try {
-//            ObjectNode json = objectMapper.createObjectNode();
-//            json.put("chat_id", chatId);
-//            json.put("message_id", messageId);
-//
-//            String payload = objectMapper.writeValueAsString(json);
-//            RequestBody body = RequestBody.create(payload, JSON_MEDIA_TYPE);
-//
-//            Request request = new Request.Builder()
-//                    .url(apiUrl + "/deleteMessage")
-//                    .post(body)
-//                    .build();
-//
-//            try (Response response = httpClient.newCall(request).execute()) {
-//                return response.isSuccessful();
-//            }
-//        } catch (Exception e) {
-//            log.error("Failed to delete message", e);
-//        }
-//        return false;
-//    }
+    public String getApiUrl() {
+        return apiUrl;
+    }
+    public OkHttpClient getHttpClient() {
+        return httpClient;
+    }
+    public String getBotToken() {
+        return botToken;
+    }
 
-    /**
-     * Edit message text
-     */
-//    public boolean editMessageText(String chatId, String messageId, String newText) {
-//        try {
-//            ObjectNode json = objectMapper.createObjectNode();
-//            json.put("chat_id", chatId);
-//            json.put("message_id", messageId);
-//            json.put("text", newText);
-//            json.put("parse_mode", "HTML");
-//
-//            String payload = objectMapper.writeValueAsString(json);
-//            RequestBody body = RequestBody.create(payload, JSON_MEDIA_TYPE);
-//
-//            Request request = new Request.Builder()
-//                    .url(apiUrl + "/editMessageText")
-//                    .post(body)
-//                    .build();
-//
-//            try (Response response = httpClient.newCall(request).execute()) {
-//                if (response.isSuccessful() && response.body() != null) {
-//                    String responseBody = response.body().string();
-//                    JsonNode result = objectMapper.readTree(responseBody);
-//                    return result.get("ok").asBoolean(false);
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("Failed to edit message", e);
-//        }
-//        return false;
-//    }
-
-    /**
-     * Get chat info
-     */
-//    public JsonNode getChat(String chatId) {
-//        try {
-//            Request request = new Request.Builder()
-//                    .url(apiUrl + "/getChat?chat_id=" + chatId)
-//                    .get()
-//                    .build();
-//
-//            try (Response response = httpClient.newCall(request).execute()) {
-//                if (response.isSuccessful() && response.body() != null) {
-//                    String body = response.body().string();
-//                    JsonNode json = objectMapper.readTree(body);
-//
-//                    if (json.get("ok").asBoolean(false)) {
-//                        return json.get("result");
-//                    }
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("Failed to get chat info for {}", chatId, e);
-//        }
-//        return null;
-//    }
-
-    /**
-     * Answer callback query
-     */
-//    public boolean answerCallbackQuery(String callbackQueryId, String text, boolean showAlert) {
-//        try {
-//            ObjectNode json = objectMapper.createObjectNode();
-//            json.put("callback_query_id", callbackQueryId);
-//
-//            if (text != null && !text.isEmpty()) {
-//                json.put("text", text);
-//            }
-//
-//            json.put("show_alert", showAlert);
-//
-//            String payload = objectMapper.writeValueAsString(json);
-//            RequestBody body = RequestBody.create(payload, JSON_MEDIA_TYPE);
-//
-//            Request request = new Request.Builder()
-//                    .url(apiUrl + "/answerCallbackQuery")
-//                    .post(body)
-//                    .build();
-//
-//            try (Response response = httpClient.newCall(request).execute()) {
-//                return response.isSuccessful();
-//            }
-//        } catch (Exception e) {
-//            log.error("Failed to answer callback query", e);
-//        }
-//        return false;
-//    }
-//
-//
-//
-//    public String getBotToken() {
-//        return botToken;
-//    }
-//
-//    public String getApiUrl() {
-//        return apiUrl;
-//    }
 }
