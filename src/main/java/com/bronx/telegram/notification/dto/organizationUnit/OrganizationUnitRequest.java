@@ -29,8 +29,8 @@ public class OrganizationUnitRequest {
     @Size(max = 50, message = "Unit code must not exceed 50 characters")
     private String unitCode;
 
-    @NotNull(message = "Unit type is required")
-    private UnitType unitType;
+//    @NotNull(message = "Unit type is required")
+//    private UnitType unitType;
 
     private UnitStatus status = UnitStatus.ACTIVE;
 

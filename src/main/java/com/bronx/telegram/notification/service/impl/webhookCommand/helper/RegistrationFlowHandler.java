@@ -45,14 +45,13 @@ public class RegistrationFlowHandler {
                                        RegistrationState currentState) {
         String userInput = message.getCommand();
         String chatId = message.getChatId();
-//        Long botId = webhook.getBot().getId();
 
         switch (currentState) {
-            case AWAITING_EMAIL:
-                handleEmailInput(webhook, chatId, userInput);
-                break;
             case AWAITING_EMP_CODE:
                 handleEmployeeCodeInput(webhook, chatId, userInput);
+                break;
+            case AWAITING_EMAIL:
+                handleEmailInput(webhook, chatId, userInput);
                 break;
             case AWAITING_CONTACT:
                 handleContactInput(webhook, chatId, userInput);
@@ -85,7 +84,7 @@ public class RegistrationFlowHandler {
         completeRegistration(webhook, message, chatId);
     }
 
-    private void handleEmailInput(Webhook webhook, String chatId, String userInput) {
+    public void handleEmailInput(Webhook webhook, String chatId, String userInput) {
         Long botId = webhook.getBot().getId();
 
         if (!ValidationUtils.isValidEmail(userInput)) {
@@ -97,7 +96,7 @@ public class RegistrationFlowHandler {
         userBotStateService.saveTemporaryEmail(chatId, userInput);
         userBotStateService.updateUserState(chatId, RegistrationState.AWAITING_EMP_CODE);
         messageSender.sendMessage(botId, chatId,
-                "✅ Email saved.\n\nStep 2: Please enter your <b>Employee Code</b>:");
+                "✅ Email saved.\n\nStep 3: Please enter your <b>Employee Contact Number</b>:");
     }
 
     private void handleFullNameInput(Webhook webhook, String chatId, String fullName) {
@@ -109,13 +108,13 @@ public class RegistrationFlowHandler {
                 "✅ FullName saved.\n\nStep 4: Please enter your <b>Employee Role</b>\n\n Or Finish Registration: /finish");
     }
 
-    private void handleRoleInput(Webhook webhook,WebhookMessage message, String chatId, String role) {
+    public void handleRoleInput(Webhook webhook,WebhookMessage message, String chatId, String role) {
         userBotStateService.saveRole(chatId, role);
         userBotStateService.updateUserState(chatId, RegistrationState.AWAITING_FINISH);
         completeRegistration(webhook, message, chatId);
     }
 
-    private void handleEmployeeCodeInput(Webhook webhook, String chatId, String userInput) {
+    public void handleEmployeeCodeInput(Webhook webhook, String chatId, String userInput) {
         Long botId = webhook.getBot().getId();
 
         if (userInput == null || userInput.trim().isEmpty()) {
@@ -127,21 +126,21 @@ public class RegistrationFlowHandler {
         userBotStateService.saveTemporaryEmployeeCode(chatId, userInput.trim());
         userBotStateService.updateUserState(chatId, RegistrationState.AWAITING_CONTACT);
         messageSender.sendMessage(botId, chatId,
-                "✅ Employee code saved.\n\nFinal Step: Please provide your <b>Contact Number</b>:");
+                "✅ Employee code saved.\n\n Step 2: Please provide your <b>Employee Email</b>:");
     }
 
-    private void handleContactInput(Webhook webhook,
+    public void handleContactInput(Webhook webhook,
                                     String chatId, String userInput) {
         Long botId = webhook.getBot().getId();
 
         userBotStateService.saveContact(chatId, userInput.trim());
         userBotStateService.updateUserState(chatId, RegistrationState.AWAITING_FULL_NAME);
         messageSender.sendMessage(botId, chatId,
-                "✅ Contact saved.\n\nStep 4: Please enter your <b>Employee FullName</b>\n\n Finish Registration: /finish");
+                "✅ Contact saved.\n\nStep 4: Please enter your <b>Employee FullName</b>\n\n Or Finish Registration: /finish");
 
     }
 
-    private void completeRegistration(Webhook webhook, WebhookMessage message,
+    public void completeRegistration(Webhook webhook, WebhookMessage message,
                                       String chatId) {
         Long botId = webhook.getBot().getId();
 

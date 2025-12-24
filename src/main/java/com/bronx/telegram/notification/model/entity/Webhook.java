@@ -40,6 +40,9 @@ public class Webhook extends SoftDeletableAuditable<Long> {
     @Column(name = "command", length = 50)
     private String command; // /register, /start, etc.
 
+    @Column(name = "deeplink", length = 500)
+    private String deeplink; // For /start commands with parameters
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "content", columnDefinition = "jsonb")
     private JsonNode content; // Full webhook payload

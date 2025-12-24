@@ -2,6 +2,7 @@ package com.bronx.telegram.notification.repository;
 import com.bronx.telegram.notification.model.entity.Employee;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -32,5 +33,16 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     @Query("select e from Employee e where e.telegramChatId = ?1 and e.status= 'ACTIVE'")
     Optional<Employee> findByTelegramChatId(String chatId);
+
+
+    @Query(value = """
+        SELECT t.bot_username 
+        FROM employees e 
+        INNER JOIN organization_units o ON e.org_unit_id = o.id 
+        INNER JOIN subscriptions s ON o.id = s.org_unit_id 
+        INNER JOIN telegram_bots t ON s."id" = t.subscription_id 
+        WHERE e.employee_code = :employeeCode
+        """, nativeQuery = true)
+    Optional<String> findBotUsernameByEmployeeCode(@Param("employeeCode") String employeeCode);
 
 }

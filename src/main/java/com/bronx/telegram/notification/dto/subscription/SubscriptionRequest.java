@@ -17,8 +17,8 @@ public class SubscriptionRequest {
     @NotNull(message = "Partner ID is required")
     private Long partnerId;
 
-    @NotNull(message = "Subscription type is required")
-    private SubscriptionType subscriptionType;
+//    @NotNull(message = "Subscription type is required")
+//    private SubscriptionType subscriptionType;
 
 
     private Long orgUnitId;

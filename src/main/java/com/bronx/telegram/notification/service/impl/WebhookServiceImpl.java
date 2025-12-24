@@ -21,7 +21,6 @@ public class WebhookServiceImpl implements WebhookService {
     private final WebhookRepository webhookRepository;
     private final NotificationQueueServiceImpl queueService;
     private final ObjectMapper objectMapper;
-    private final TelegramChannelRepository telegramChannelRepository;
 
     @Override
     public void processWebhook(TelegramBot bot, String payload) {
@@ -72,7 +71,7 @@ public class WebhookServiceImpl implements WebhookService {
             webhook.setChatId(message.get("chat").get("id").asText());
 
         }
-
+log.info("telegram handler...");
         if (message.has("from")) {
             JsonNode from = message.get("from");
             webhook.setUserId(from.get("id").asText());
@@ -84,11 +83,27 @@ public class WebhookServiceImpl implements WebhookService {
         if (message.has("text")) {
             String text = message.get("text").asText();
             webhook.setMessageType("text");
-            webhook.setCommand(text);
 
-            if (text.startsWith("/")) {
-                webhook.setCommand(text.split(" ")[0]);
+            String lowerText = text.toLowerCase();
+
+            if (lowerText.startsWith("/start") || lowerText.startsWith("start")) {
+                webhook.setCommand("/start");
+
+                // Split by space to find the parameter
+                String[] parts = text.split("\\s+", 2);
+
+                if (parts.length > 1) {
+                    String param = parts[1];
+                    webhook.setDeeplink(param);
+                    log.info("🎯 Deep link found! Parameter: {}", param);
+                } else {
+                    log.info("ℹ️ Start received, but NO parameter found in text: '{}'", text);
+                }
+            } else {
+                // Handle other commands
+                webhook.setCommand(text.startsWith("/") ? text.split("\\s+")[0] : text);
             }
+
         }
     }
 

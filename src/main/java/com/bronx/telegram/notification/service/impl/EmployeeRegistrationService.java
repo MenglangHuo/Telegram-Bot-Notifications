@@ -28,6 +28,8 @@ public class EmployeeRegistrationService {
     private final TelegramBotService telegramBotService;
     private final SubscriptionRepository subscriptionRepository;
     private final EmployeeMapper employeeMapper;
+    private final TelegramBotRepository telegramBotRepository;
+
 
     public RegistrationResult registerEmployeeFromTelegram(
             EmployeeTelegramRequest request
@@ -67,75 +69,6 @@ public class EmployeeRegistrationService {
                     "An error occurred during registration. Please try again later.");
         }
 
-    }
-    public RegistrationResult registerEmployee(
-            String email,
-            String telegramUserId,
-            String telegramUsername,
-            String chatId) {
-
-        log.info("🔍 Registration attempt - Email: {}, TelegramID: {}, ChatID: {}",
-                email, telegramUserId, chatId);
-
-        try {
-            // Find employee by email (search across all partners)
-            Employee employee = employeeRepository.findByEmail(email)
-                    .orElse(null);
-
-            if (employee == null) {
-                log.warn("❌ Employee not found with email: {}", email);
-                return RegistrationResult.notFound(
-                        "Employee not found. Please contact your HR department.");
-            }
-
-            // Check if employee is already registered with a DIFFERENT Telegram account
-            if (employee.getTelegramUserId() != null && !employee.getTelegramUserId().isEmpty()&&
-                    !employee.getTelegramUserId().equals(telegramUserId)) {
-                log.warn("⚠️ Employee {} already registered with different Telegram account",
-                        email);
-                return RegistrationResult.alreadyRegistered(
-                        "This employee account is already linked to another Telegram account. " +
-                                "Please contact your HR department to reset.");
-            }
-
-            // Check if employee is already fully registered
-            if (employee.getTelegramUserId() != null &&
-                    employee.getTelegramChatId() != null){
-                log.info("ℹ️ Employee {} already registered", email);
-                return RegistrationResult.alreadyRegistered(
-                        "You are already registered. Welcome back!");
-            }
-
-            // Check if employee is terminated
-            if (employee.getIsActive().equals(Boolean.FALSE)) {
-                log.warn("❌ Terminated employee {} attempted registration", email);
-                return RegistrationResult.failure(
-                        "Your employee account is no longer active. " +
-                                "Please contact HR for assistance.");
-            }
-
-            // Update employee with Telegram information
-            employee.setTelegramUserId(telegramUserId);
-            employee.setTelegramUsername(telegramUsername);
-            employee.setTelegramChatId(chatId);
-            employee.setRegisteredAt(Instant.now());
-
-            Employee empUpdated = employeeRepository.save(employee);
-
-            log.info("✅ Successfully registered employee {} ({}) with Telegram",
-                    empUpdated.getFullName(),
-                    empUpdated.getEmployeeCode());
-
-            // Send welcome message
-//            sendWelcomeMessage(empUpdated);
-
-            return RegistrationResult.success(empUpdated);
-
-        } catch (Exception e) {
-            log.error("❌ Error during employee registration: {}", e.getMessage(), e);
-            return RegistrationResult.failure(
-                    "An error occurred during registration. Please try again later.");
-        }
     }
 
     @Transactional
@@ -181,14 +114,14 @@ public class EmployeeRegistrationService {
                 .role(request.role())
                 .contact(request.contact())
                 .telegramUsername(request.telegramUsername())
-                .status(BotStatus.ACTIVE)
+                .status(BotStatus.INACTIVE)
                 .build();
 
         Employee saved = employeeRepository.save(employee);
         log.info("✅ Created employee: {} in org unit: {}",
                 saved.getEmployeeCode(), orgUnit.getUnitName());
 
-        return employeeMapper.toResponse(saved);
+        return employeeMapper.toResponse(saved,telegramBotRepository);
     }
 
     private void sendWelcomeMessage(Employee employee) {
@@ -261,5 +194,75 @@ public class EmployeeRegistrationService {
                 .filter(sub -> sub.getStatus() == SubscriptionStatus.ACTIVE)
                 .orElse(null);
     }
+    //    public RegistrationResult registerEmployee(
+//            String email,
+//            String telegramUserId,
+//            String telegramUsername,
+//            String chatId) {
+//
+//        log.info("🔍 Registration attempt - Email: {}, TelegramID: {}, ChatID: {}",
+//                email, telegramUserId, chatId);
+//
+//        try {
+//            // Find employee by email (search across all partners)
+//            Employee employee = employeeRepository.findByEmail(email)
+//                    .orElse(null);
+//
+//            if (employee == null) {
+//                log.warn("❌ Employee not found with email: {}", email);
+//                return RegistrationResult.notFound(
+//                        "Employee not found. Please contact your HR department.");
+//            }
+//
+//            // Check if employee is already registered with a DIFFERENT Telegram account
+//            if (employee.getTelegramUserId() != null && !employee.getTelegramUserId().isEmpty()&&
+//                    !employee.getTelegramUserId().equals(telegramUserId)) {
+//                log.warn("⚠️ Employee {} already registered with different Telegram account",
+//                        email);
+//                return RegistrationResult.alreadyRegistered(
+//                        "This employee account is already linked to another Telegram account. " +
+//                                "Please contact your HR department to reset.");
+//            }
+//
+//            // Check if employee is already fully registered
+//            if (employee.getTelegramUserId() != null &&
+//                    employee.getTelegramChatId() != null){
+//                log.info("ℹ️ Employee {} already registered", email);
+//                return RegistrationResult.alreadyRegistered(
+//                        "You are already registered. Welcome back!");
+//            }
+//
+//            // Check if employee is terminated
+//            if (employee.getIsActive().equals(Boolean.FALSE)) {
+//                log.warn("❌ Terminated employee {} attempted registration", email);
+//                return RegistrationResult.failure(
+//                        "Your employee account is no longer active. " +
+//                                "Please contact HR for assistance.");
+//            }
+//
+//            // Update employee with Telegram information
+//            employee.setTelegramUserId(telegramUserId);
+//            employee.setTelegramUsername(telegramUsername);
+//            employee.setTelegramChatId(chatId);
+//            employee.setRegisteredAt(Instant.now());
+//
+//            Employee empUpdated = employeeRepository.save(employee);
+//
+//            log.info("✅ Successfully registered employee {} ({}) with Telegram",
+//                    empUpdated.getFullName(),
+//                    empUpdated.getEmployeeCode());
+//
+//            // Send welcome message
+////            sendWelcomeMessage(empUpdated);
+//
+//            return RegistrationResult.success(empUpdated);
+//
+//        } catch (Exception e) {
+//            log.error("❌ Error during employee registration: {}", e.getMessage(), e);
+//            return RegistrationResult.failure(
+//                    "An error occurred during registration. Please try again later.");
+//        }
+//    }
+
 
 }

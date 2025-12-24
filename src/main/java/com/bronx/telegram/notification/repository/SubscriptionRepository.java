@@ -21,9 +21,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             Long partnerId,
             SubscriptionStatus status,
             Pageable pageable);
-
-    List<Subscription> findAllByStatus(SubscriptionStatus status);
-
     List<Subscription> findAllByLastResetDateBefore(Instant date);
 
     @Query("""
@@ -37,15 +34,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             @Param("start") Instant start,
             @Param("end") Instant end);
 
-    @Query("""
-        SELECT s FROM Subscription s
-        WHERE s.subscriptionType = :type
-        AND s.company.id = :companyId
-        AND s.status = 'ACTIVE'
-    """)
-    List<Subscription> findByTypeAndCompany(
-            @Param("type") SubscriptionType type,
-            @Param("companyId") Long companyId);
 
     @Query("""
         SELECT s FROM Subscription s

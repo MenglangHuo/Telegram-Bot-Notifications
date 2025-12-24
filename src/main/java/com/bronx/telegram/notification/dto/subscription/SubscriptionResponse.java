@@ -2,6 +2,7 @@ package com.bronx.telegram.notification.dto.subscription;
 import com.bronx.telegram.notification.dto.organizationUnit.OrganizationMainResponse;
 import com.bronx.telegram.notification.model.enumz.SubscriptionStatus;
 import com.bronx.telegram.notification.model.enumz.SubscriptionType;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +13,7 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SubscriptionResponse {
     private Long id;
     private Long partnerId;

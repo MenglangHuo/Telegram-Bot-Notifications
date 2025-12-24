@@ -2,7 +2,6 @@ package com.bronx.telegram.notification.model.entity;
 
 import com.bronx.telegram.notification.model.audit.SoftDeletableAuditable;
 import com.bronx.telegram.notification.model.enumz.UnitStatus;
-import com.bronx.telegram.notification.model.enumz.UnitType;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.*;
@@ -49,10 +48,6 @@ public class OrganizationUnit extends SoftDeletableAuditable<Long> {
 
     @Column(nullable = false, length = 50)
     private String unitCode;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private UnitType unitType;
 
     @Column(length = 200)
     private String path;

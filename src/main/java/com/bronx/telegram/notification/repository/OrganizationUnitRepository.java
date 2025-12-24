@@ -26,9 +26,6 @@ public interface OrganizationUnitRepository extends JpaRepository<OrganizationUn
             "AND ou.deletedAt IS NULL ORDER BY ou.path")
     List<OrganizationUnit> findDescendantsByPath(String path);
 
-    @Query("SELECT ou FROM OrganizationUnit ou WHERE ou.company.id = :companyId " +
-            "AND ou.unitType = :unitType AND ou.deletedAt IS NULL")
-    List<OrganizationUnit> findByCompanyAndType(Long companyId, UnitType unitType);
 
     @Query("SELECT ou FROM OrganizationUnit ou WHERE ou.company.id = :companyId " +
             "AND ou.status = :status AND ou.deletedAt IS NULL")

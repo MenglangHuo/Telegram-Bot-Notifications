@@ -34,10 +34,6 @@ public class Subscription extends SoftDeletableAuditable<Long> {
     @JoinColumn(name = "org_unit_id")
     private OrganizationUnit scope;
 
-    @Column(name = "subscription_type", nullable = false, length = 50)
-    @Enumerated(EnumType.STRING)
-    private SubscriptionType subscriptionType;
-
     @Column(name = "subscription_name",length = 50)
     private String subscriptionName;
 
@@ -71,12 +67,12 @@ public class Subscription extends SoftDeletableAuditable<Long> {
     @JdbcTypeCode(SqlTypes.JSON)
     private JsonNode features; // e.g., {"priority_support": true, "analytics": true}
 
-
     @Column(name = "current_notifications_count")
     private Integer currentNotificationsCount = 0;
 
     @Column(name = "current_bot_count")
     private Integer currentBotCount = 0;
+
 
     @Transient
     public boolean isValid() {

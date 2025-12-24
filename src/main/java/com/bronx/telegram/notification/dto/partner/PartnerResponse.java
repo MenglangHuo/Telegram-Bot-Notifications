@@ -1,6 +1,7 @@
 package com.bronx.telegram.notification.dto.partner;
 
 import com.bronx.telegram.notification.model.enumz.SubscriptionTier;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +13,7 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PartnerResponse {
     private Long id;
     private String partnerName;

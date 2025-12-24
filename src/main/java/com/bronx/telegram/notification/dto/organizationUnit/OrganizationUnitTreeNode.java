@@ -2,6 +2,7 @@ package com.bronx.telegram.notification.dto.organizationUnit;
 
 import com.bronx.telegram.notification.model.enumz.UnitStatus;
 import com.bronx.telegram.notification.model.enumz.UnitType;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class OrganizationUnitTreeNode {
     private Long id;
     private String unitName;

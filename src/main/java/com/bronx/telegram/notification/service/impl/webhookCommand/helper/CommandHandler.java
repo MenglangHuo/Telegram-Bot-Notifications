@@ -1,9 +1,8 @@
 package com.bronx.telegram.notification.service.impl.webhookCommand.helper;
-
 import com.bronx.telegram.notification.dto.webhook.WebhookMessage;
 import com.bronx.telegram.notification.model.entity.Webhook;
-import com.bronx.telegram.notification.repository.EmployeeRepository;
 import com.bronx.telegram.notification.service.TelegramChannelService;
+import com.bronx.telegram.notification.utils.EncryptionUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -50,16 +49,24 @@ public class CommandHandler {
     }
 
     public void sendStartMenu(Webhook webhook, WebhookMessage message) {
-        String welcome = "👋 <b>Welcome to the Employee Portal!</b>\n\n" +
-                "Choose an option below to get started:";
 
-        List<List<String>> keyboard = List.of(
-                List.of("📝 Register", "📊 Status"),
-                List.of("❓ Help")
-        );
+        String deepLinkParam = webhook.getDeeplink();
+        if (deepLinkParam == null || deepLinkParam.isEmpty()) {
+            String welcome = "👋 <b>Welcome to the Employee Portal!</b>\n\n" +
+                    "Choose an option below to get started:";
 
-        messageSender.sendMessageWithKeyboard(webhook.getBot().getId(),
-                message.getChatId(), welcome, keyboard);
+            List<List<String>> keyboard = List.of(
+                    List.of("📝 Register", "📊 Status"),
+                    List.of("❓ Help")
+            );
+
+            messageSender.sendMessageWithKeyboard(webhook.getBot().getId(),
+                    message.getChatId(), welcome, keyboard);
+        }else{
+           String email= EncryptionUtils.decrypt(deepLinkParam);
+           log.info("Deeplink parameter detected: {}", email);
+           registrationFlowHandler.handleEmployeeCodeInput(webhook, message.getChatId(), email);
+        }
     }
 
     private void handleRegisterCommand(Webhook webhook, WebhookMessage message) {
