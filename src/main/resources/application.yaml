@@ -1,0 +1,81 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: telegram-bot-notification
+  datasource:
+    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:54322}/${DATABASE_NAME:telegram-notification}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:telegram-bot@123}
+
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL:10}
+      minimum-idle: ${HIKARI_MIN_IDLE:5}
+      connection-timeout: ${HIKARI_CON_TIMEOUT:30000}
+      idle-timeout: ${HIKARI_IDLE_TIMEOUT:600000}
+      max-lifetime: ${HIKARI_MAX_LIFETIME:1800000}
+      keepalive-time: ${HIKARI_KEEP_ALIVE:300000}
+  jpa:
+    show-sql: ${JPA_SHOW_SQL:true}
+    properties:
+      hibernate:
+        format_sql: ${HIBERNATE_FORMAT_SQL:true}
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: Asia/Phnom_Penh
+    hibernate:
+      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
+  jackson:
+    time-zone: Asia/Phnom_Penh
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 10
+        concurrency: 3
+        max-concurrency: 10
+        retry:
+          enabled: true
+          initial-interval: 3000
+          max-attempts: 3
+          multiplier: 2.0
+
+encryption:
+  secret:
+    key: ${ENCRYPTION_SECRET_KEY:484a73b16af99dbcff630f6e718c012beb8147c524452224187fc40b82147731}
+
+
+telegram:
+  webhook:
+    base-url: https://chewiest-tawny-nonmanually.ngrok-free.dev  # ← Copy from ngrok output
+    path: /api/webhook/telegram
+    max-connections: 100
+    allowed-updates: message,callback_query,my_chat_member,channel_post
+
+  bot:
+    connection-timeout: 10000
+    read-timeout: 30000
+    thread-pool-size: 20
+
+  rate-limit:
+    default-per-second: 30
+    global-per-second: 30
+
+logging:
+  level:
+    root: INFO
+    com.telegram.notification: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/notification-service.log
+    max-size: 10MB
+    max-history: 30
+
