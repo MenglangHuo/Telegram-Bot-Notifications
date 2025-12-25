@@ -67,15 +67,15 @@ telegram:
     default-per-second: 30
     global-per-second: 30
 
-logging:
-  level:
-    root: INFO
-    com.telegram.notification: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/notification-service.log
-    max-size: 10MB
-    max-history: 30
+#logging:
+#  level:
+#    root: INFO
+#    com.telegram.notification: DEBUG
+#  pattern:
+#    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+#    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+#  file:
+#    name: logs/notification-service.log
+#    max-size: 10MB
+#    max-history: 30
 
