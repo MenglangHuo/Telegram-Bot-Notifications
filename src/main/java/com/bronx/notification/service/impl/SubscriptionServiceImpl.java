@@ -17,6 +17,7 @@ import com.bronx.notification.repository.SubscriptionPlanRepository;
 import com.bronx.notification.repository.SubscriptionRepository;
 import com.bronx.notification.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,8 +43,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Subscription plan not found with id: " + request.planId()));
 
         // Example business rule: Check if scope already has an active subscription
-         if (subscriptionRepository.findByScope(scope).isPresent()) {
-             throw new DuplicateResourceException("Scope already has an active subscription");
+         if (subscriptionRepository.findByScopeIdAndSubscriptionId(scope.getId(),plan.getId()).isPresent()) {
+             throw new DuplicateResourceException("Scope with this Plan already Exist already has an active subscription");
          }
 
         Subscription entity = mapper.toEntity(request);
@@ -88,8 +89,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public List<SubscriptionResponse> findAll() {
-        return mapper.toResponses(subscriptionRepository.findAll());
+    public List<SubscriptionResponse> findAll(Long scopeId, Pageable pageable) {
+        OrganizationUnit scope=null;
+        if(scopeId!=null){
+            scope = orgUnitRepository.findById(scopeId).orElse(null);
+        }
+
+        return mapper.toResponses(subscriptionRepository.findActiveByScope(scope,pageable));
     }
 
     private void saveHistory(Subscription sub, SubscriptionPlan plan, SubscriptionAction action) {

@@ -1,6 +1,8 @@
 package com.bronx.notification.repository;
 import com.bronx.notification.model.entity.OrganizationUnit;
 import com.bronx.notification.model.entity.Subscription;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,5 +17,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     @Query("SELECT s FROM Subscription s WHERE s.scope.id = :orgId AND s.status = 'ACTIVE'")
     Optional<Subscription> findActiveSubscriptionByOrg(@Param("orgId") Long orgId);
 
-    Optional<Object> findByScope(OrganizationUnit scope);
+    @Query("SELECT s FROM Subscription s WHERE s.scope.id = :orgId AND s.plan.id=:planId AND s.status = 'ACTIVE'")
+    Optional<Object> findByScopeIdAndSubscriptionId(@Param("orgId") Long orgId,@Param("planId") Long planId);
+
+    @Query("select s from Subscription s where (s.scope is null or s.scope = ?1) and s.status = 'ACTIVE'")
+    List<Subscription> findActiveByScope(OrganizationUnit scope,Pageable pageable);
+
 }

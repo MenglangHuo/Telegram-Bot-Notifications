@@ -10,6 +10,7 @@ import com.bronx.notification.repository.SubscriptionPlanRepository;
 import com.bronx.notification.service.SubscriptionPlanService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -60,7 +61,7 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
     }
 
     @Override
-    public List<SubscriptionPlanResponse> findAll() {
-        return mapper.toResponses(repository.findAll());
+    public List<SubscriptionPlanResponse> findAll(Pageable pageable,String search) {
+        return mapper.toResponses(repository.findAllByName(search,pageable).getContent());
     }
 }

@@ -11,10 +11,8 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OrganizationMainResponse {
     private Long id;
-    private Long companyId;
     private String companyName;
-    private Long parentId;
     private String parentName;
-    private String unitName;
-    private String unitCode;
+    private String name;
+    private String code;
 }

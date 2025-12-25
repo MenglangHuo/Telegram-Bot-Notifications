@@ -44,10 +44,6 @@ public interface OrganizationUnitRepository extends JpaRepository<OrganizationUn
             "AND ou.deletedAt IS NULL")
     Integer countByCompany(Long companyId);
 
-    @Query("SELECT SUM(ou.employeeCount) FROM OrganizationUnit ou " +
-            "WHERE ou.path LIKE CONCAT(:path, '%') AND ou.deletedAt IS NULL")
-    Integer sumEmployeeCountInSubtree(String path);
-
 
     // Leaf nodes
     @Query("SELECT ou FROM OrganizationUnit ou WHERE ou.company.id = :companyId " +

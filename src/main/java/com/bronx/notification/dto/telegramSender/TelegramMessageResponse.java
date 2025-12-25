@@ -1,4 +1,4 @@
-package com.bronx.notification.dto.telegram;
+package com.bronx.notification.dto.telegramSender;
 
 
 import com.bronx.notification.model.enumz.TelegramMessageType;

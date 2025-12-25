@@ -68,10 +68,6 @@ public class OrganizationUnit extends SoftDeletableAuditable<Long> {
     @Builder.Default
     private Boolean isLeaf = false;
 
-    @Column(name = "employee_count")
-    @Builder.Default
-    private Integer employeeCount = 0;
-
     @Column(name = "display_order")
     @Builder.Default
     private Integer displayOrder = 0;

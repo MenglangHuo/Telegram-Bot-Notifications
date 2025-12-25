@@ -25,25 +25,16 @@ public class OrganizationUnitRequest {
 
     @NotBlank(message = "Unit name is required")
     @Size(max = 200, message = "Unit name must not exceed 200 characters")
-    private String unitName;
+    private String name;
 
     @NotBlank(message = "Unit code is required")
     @Size(max = 50, message = "Unit code must not exceed 50 characters")
-    private String unitCode;
+    private String code;
 
     private UnitStatus status = UnitStatus.ACTIVE;
 
     private JsonNode metadata;
 
-    @Email(message = "Invalid manager email format")
-    @Size(max = 100)
-    private String managerEmail;
-
-    @Size(max = 100)
-    private String managerName;
-
-    @Size(max = 30)
-    private String managerPhone;
 
     private Boolean isLeaf = false;
 

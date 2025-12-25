@@ -1,5 +1,6 @@
 package com.bronx.notification.mapper;
 
+import com.bronx.notification.dto.organizationUnit.OrganizationMainResponse;
 import com.bronx.notification.dto.organizationUnit.OrganizationUnitRequest;
 import com.bronx.notification.dto.organizationUnit.OrganizationUnitResponse;
 import com.bronx.notification.dto.organizationUnit.OrganizationUnitTreeNode;
@@ -13,6 +14,10 @@ public interface OrganizationUnitMapper {
 
 
     OrganizationUnit toEntity(OrganizationUnitRequest request);
+
+    @Mapping(target = "companyName",source = "company.name")
+    @Mapping(target = "parentName",source = "parent.name")
+    OrganizationMainResponse toMainResponse(OrganizationUnit entity);
 
 
     @Mapping(target = "parentId", source = "parent.id")

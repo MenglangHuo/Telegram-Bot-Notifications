@@ -1,10 +1,13 @@
 package com.bronx.notification.model.entity;
 import com.bronx.notification.model.audit.SoftDeletableAuditable;
 import com.bronx.notification.model.enumz.*;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.io.Serializable;
 import java.time.Instant;
 
@@ -12,35 +15,34 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@Table(name = "notifications",
-        indexes = {
-                @Index(name = "idx_notification_status", columnList = "status"),
-                @Index(name = "idx_notification_priority", columnList = "priority"),
-                @Index(name = "idx_notification_queued_at", columnList = "queued_at")
-        }
+@Table(name = "notifications"
 )
 public class Notification extends SoftDeletableAuditable<Long> implements Serializable {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "partner_id", nullable = false)
-    private Partner partner;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subscription_id", nullable = false)
     private Subscription subscription;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "org_unit_id")
-    private OrganizationUnit organizationUnit;
+    @Column(name = "chart_id")
+    private String chartId;
 
-    @Column(name = "title", length = 200)
-    private String title;
+    @Column(name = "bot_username",length = 150)
+    private String botUsername;
 
+    @Column(length = 60,name = "telegram_template_name")
+    private String teleTemplateName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type")
+    private TelegramMessageType type = TelegramMessageType.TEXT;
+
+    @Column(name = "media_url", length = 2048)
+    private String url;
+
+    @Column(name = "media_caption", length = 1024)
+    private String caption;
     @Column(name = "message", columnDefinition = "TEXT", nullable = false)
     private String message;
-
-    @Column(name = "location",length = 100)
-    private String location;
 
     @Column(name = "is_own_custom")
     private boolean isOwnCustom=true;
@@ -49,6 +51,10 @@ public class Notification extends SoftDeletableAuditable<Long> implements Serial
     @Enumerated(EnumType.STRING)
     private TelegramParseMode telegramParseMode;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "meta_data", columnDefinition = "jsonb")
+    private JsonNode metaData;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", nullable = false, length = 20)
     private NotificationPriority priority = NotificationPriority.NORMAL;
@@ -56,16 +62,6 @@ public class Notification extends SoftDeletableAuditable<Long> implements Serial
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private NotificationStatus status = NotificationStatus.QUEUED;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "media_type")
-    private TelegramMessageType mediaType = TelegramMessageType.TEXT;
-
-    @Column(name = "media_url", length = 2048)
-    private String mediaUrl;
-
-    @Column(name = "media_caption", length = 1024)
-    private String mediaCaption;
 
     // Retry tracking
     @Column(name = "retry_count", nullable = false)

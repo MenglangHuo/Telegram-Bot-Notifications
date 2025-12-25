@@ -3,11 +3,14 @@ package com.bronx.notification.service.impl;
 import com.bronx.notification.dto.subscriptionHistory.SubscriptionHistoryResponse;
 import com.bronx.notification.exceptions.ResourceNotFoundException;
 import com.bronx.notification.mapper.SubscriptionHistoryMapper;
+import com.bronx.notification.model.entity.Subscription;
 import com.bronx.notification.model.entity.SubscriptionHistory;
 import com.bronx.notification.repository.SubscriptionHistoryRepository;
+import com.bronx.notification.repository.SubscriptionRepository;
 import com.bronx.notification.service.SubscriptionHistoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +21,7 @@ import java.util.List;
 public class SubscriptionHistoryServiceImpl implements SubscriptionHistoryService {
     private final SubscriptionHistoryRepository repository;
     private final SubscriptionHistoryMapper mapper;
+    private final SubscriptionRepository subscriptionRepository;
 
     @Override
     public void delete(Long id) {
@@ -34,7 +38,12 @@ public class SubscriptionHistoryServiceImpl implements SubscriptionHistoryServic
     }
 
     @Override
-    public List<SubscriptionHistoryResponse> findAll() {
-        return mapper.toResponses(repository.findAll());
+    public List<SubscriptionHistoryResponse> findAll(Long subscriptionId, Pageable pageable) {
+        Subscription subscription=null;
+        if(subscriptionId!=null){
+            subscription=subscriptionRepository.findById(subscriptionId).orElse(null);
+        }
+        return mapper.toResponses(repository.findAllBySubscription(subscription,pageable).getContent());
+
     }
 }

@@ -66,12 +66,5 @@ public class BotServiceImpl implements BotService {
 
     }
 
-    @Override
-    public TelegramBot getBotForScope(Long subscriptionId, String scopeLevel) {
-        Subscription subscription = subscriptionRepository.findById(subscriptionId)
-                .orElseThrow(() -> new EntityNotFoundException("Subscription not found"));
-        return telegramBotRepository
-                .findFirstBySubscriptionIdAndStatus(subscriptionId, BotStatus.ACTIVE)
-                .orElseThrow(() -> new EntityNotFoundException("No active bot found for subscription"));
-    }
+
 }

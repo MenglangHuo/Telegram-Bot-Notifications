@@ -13,21 +13,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMqConfig {
     // Queue names
-    public static final String NOTIFICATION_PERSONAL_QUEUE = "notification.personal.queue";
-    public static final String NOTIFICATION_CHANNEL_QUEUE = "notification.channel.queue";
-    public static final String WEBHOOK_PROCESSING_QUEUE = "webhook.processing.queue";
+    public static final String NOTIFICATION_QUEUE = "notification.message.queue";
     public static final String NOTIFICATION_RETRY_QUEUE = "notification.retry.queue";
     public static final String NOTIFICATION_DLQ = "notification.dlq";
 
     // Exchange names
     public static final String NOTIFICATION_EXCHANGE = "notification.exchange";
-    public static final String WEBHOOK_EXCHANGE = "webhook.exchange";
     public static final String RETRY_EXCHANGE = "retry.exchange";
 
     // Routing keys
-    public static final String PERSONAL_ROUTING_KEY = "notification.personal";
-    public static final String CHANNEL_ROUTING_KEY = "notification.channel";
-    public static final String WEBHOOK_ROUTING_KEY = "webhook.process";
+    public static final String ROUTING_KEY = "notification.message";
     public static final String RETRY_ROUTING_KEY = "notification.retry";
 
     @Bean
@@ -54,59 +49,21 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public Queue personalNotificationQueue() {
-        return QueueBuilder.durable(NOTIFICATION_PERSONAL_QUEUE)
+    public Queue notificationQueue() {
+        return QueueBuilder.durable(NOTIFICATION_QUEUE)
                 .withArgument("x-dead-letter-exchange", RETRY_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", RETRY_ROUTING_KEY)
                 .build();
     }
 
-    @Bean
-    public Queue channelNotificationQueue() {
-        return QueueBuilder.durable(NOTIFICATION_CHANNEL_QUEUE)
-                .withArgument("x-dead-letter-exchange", RETRY_EXCHANGE)
-                .withArgument("x-dead-letter-routing-key", RETRY_ROUTING_KEY)
-                .build();
-    }
 
     @Bean
-    public Binding personalNotificationBinding(Queue personalNotificationQueue,
+    public Binding notificationQueueBinding(Queue notificationQueue,
                                                DirectExchange notificationExchange) {
-        return BindingBuilder.bind(personalNotificationQueue)
+        return BindingBuilder.bind(notificationQueue)
                 .to(notificationExchange)
-                .with(PERSONAL_ROUTING_KEY);
+                .with(ROUTING_KEY);
     }
-
-    @Bean
-    public Binding channelNotificationBinding(Queue channelNotificationQueue,
-                                              DirectExchange notificationExchange) {
-        return BindingBuilder.bind(channelNotificationQueue)
-                .to(notificationExchange)
-                .with(CHANNEL_ROUTING_KEY);
-    }
-
-    // ==================== Webhook Queue ====================
-
-    @Bean
-    public DirectExchange webhookExchange() {
-        return new DirectExchange(WEBHOOK_EXCHANGE, true, false);
-    }
-
-    @Bean
-    public Queue webhookProcessingQueue() {
-        return QueueBuilder.durable(WEBHOOK_PROCESSING_QUEUE)
-                .build();
-    }
-
-    @Bean
-    public Binding webhookBinding(Queue webhookProcessingQueue,
-                                  DirectExchange webhookExchange) {
-        return BindingBuilder.bind(webhookProcessingQueue)
-                .to(webhookExchange)
-                .with(WEBHOOK_ROUTING_KEY);
-    }
-
-    // ==================== Retry & DLQ ====================
 
     @Bean
     public DirectExchange retryExchange() {
