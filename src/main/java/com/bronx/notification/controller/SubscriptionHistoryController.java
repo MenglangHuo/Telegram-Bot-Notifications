@@ -2,22 +2,16 @@ package com.bronx.notification.controller;
 
 
 import com.bronx.notification.dto.baseResponse.ApiResponse;
-import com.bronx.notification.dto.subscription.SubscriptionRequest;
-import com.bronx.notification.dto.subscription.SubscriptionResponse;
 import com.bronx.notification.dto.subscriptionHistory.SubscriptionHistoryResponse;
 import com.bronx.notification.service.SubscriptionHistoryService;
-import com.bronx.notification.service.SubscriptionService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
-import java.util.Optional;
+
 
 @RestController
 @RequestMapping("/api/v1/subscription-histories")
@@ -27,17 +21,17 @@ public class SubscriptionHistoryController {
 
     private final SubscriptionHistoryService subscriptionHistoryService;
 
-    @GetMapping("find-by-subscription-id")
+    @GetMapping("subscription-id/{id}")
     public ApiResponse<List<SubscriptionHistoryResponse>> listSubscriptionsHistoryBySubscritpionId(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(name="subscriptionId") Long subscriptionId,
+            @PathVariable Long id,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") Sort.Direction direction
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         List<SubscriptionHistoryResponse> response = subscriptionHistoryService
-                .findAll(subscriptionId,pageable);
+                .findAll(id,pageable);
 
         return ApiResponse.success(response);
     }

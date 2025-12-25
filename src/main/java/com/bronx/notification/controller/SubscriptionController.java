@@ -1,12 +1,8 @@
 package com.bronx.notification.controller;
-
-
 import com.bronx.notification.dto.baseResponse.ApiResponse;
-import com.bronx.notification.dto.baseResponse.PageResponse;
 import com.bronx.notification.dto.subscription.SubscriptionRequest;
 import com.bronx.notification.dto.subscription.SubscriptionResponse;
 import com.bronx.notification.service.SubscriptionService;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController

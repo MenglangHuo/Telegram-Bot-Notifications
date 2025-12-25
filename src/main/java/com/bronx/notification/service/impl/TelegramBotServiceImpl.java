@@ -25,40 +25,20 @@ public class TelegramBotServiceImpl implements TelegramBotService {
     private final TelegramBotRepository botRepository;
     private final TelegramBotClientFactory botClientFactory;
 
-    // ✅ Use @Value to inject configuration
-    @Value("${telegram.webhook.base-url}")
-    private String webhookBaseUrl;
-
-    @Value("${telegram.webhook.path}")
-    private String webhookPath;
-
-    // ✅ Parse comma-separated list from application.yaml
-    @Value("${telegram.webhook.allowed-updates:message,callback_query,my_chat_member,channel_post}")
-    private String allowedUpdatesString;
+//    // ✅ Use @Value to inject configuration
+//    @Value("${telegram.webhook.base-url}")
+//    private String webhookBaseUrl;
+//
+//    @Value("${telegram.webhook.path}")
+//    private String webhookPath;
+//
+//    // ✅ Parse comma-separated list from application.yaml
+//    @Value("${telegram.webhook.allowed-updates:message,callback_query,my_chat_member,channel_post}")
+//    private String allowedUpdatesString;
 
     @PostConstruct
     public void initializeBots() {
         log.info("🚀 Initializing Telegram bots...");
-
-        // Validate webhook URL
-        if (webhookBaseUrl == null || webhookBaseUrl.isEmpty()) {
-            log.error("❌ CRITICAL: telegram.webhook.base-url is not configured!");
-            return;
-        }
-
-        if (webhookBaseUrl.contains("localhost") || webhookBaseUrl.contains("127.0.0.1")) {
-            log.error("❌ CRITICAL: Webhook URL uses localhost!");
-            log.error("💡 Telegram CANNOT reach localhost. You must use:");
-            log.error("   1. A public domain with SSL (production)");
-            log.error("   2. ngrok for local testing: ngrok http 8088");
-            log.error("   3. Update application.yaml with the public URL");
-            return;
-        }
-
-        if (!webhookBaseUrl.startsWith("https://")) {
-            log.error("❌ CRITICAL: Webhook URL must use HTTPS!");
-            return;
-        }
 
         try {
             List<TelegramBot> activeBots = botRepository.findByStatus(BotStatus.ACTIVE);
@@ -102,34 +82,34 @@ public class TelegramBotServiceImpl implements TelegramBotService {
             }
 
             // Build webhook URL
-            String webhookUrl = webhookBaseUrl + webhookPath + "/" + bot.getId();
-            bot.setWebhookUrl(webhookUrl);
+//            String webhookUrl = webhookBaseUrl + webhookPath + "/" + bot.getId();
+//            bot.setWebhookUrl(webhookUrl);
 
             // Parse allowed updates
-            List<String> allowedUpdates = Arrays.stream(allowedUpdatesString.split(","))
-                    .map(String::trim).toList();
+//            List<String> allowedUpdates = Arrays.stream(allowedUpdatesString.split(","))
+//                    .map(String::trim).toList();
 
             // Setup webhook
             log.info("Setting up webhook for bot {}...", bot.getBotUsername());
-            boolean webhookSuccess = client.setWebhook(webhookUrl, allowedUpdates);
+//            boolean webhookSuccess = client.setWebhook(webhookUrl, allowedUpdates);
 
-            if (webhookSuccess) {
-                bot.setStatus(BotStatus.ACTIVE);
-                log.info("✅ Webhook configured: {}", webhookUrl);
-
-                // Verify webhook info
-                JsonNode webhookInfo = client.getWebhookInfo();
-                if (webhookInfo != null && webhookInfo.has("url")) {
-                    String confirmedUrl = webhookInfo.get("url").asText();
-                    if (!confirmedUrl.equals(webhookUrl)) {
-                        log.warn("⚠️ Webhook URL mismatch!");
-                        log.warn("   Expected: {}", webhookUrl);
-                        log.warn("   Got: {}", confirmedUrl);
-                    }
-                }
-            } else {
-                log.error("❌ Failed to set webhook for bot {}", bot.getBotUsername());
-            }
+//            if (webhookSuccess) {
+//                bot.setStatus(BotStatus.ACTIVE);
+//                log.info("✅ Webhook configured: {}", webhookUrl);
+//
+//                // Verify webhook info
+//                JsonNode webhookInfo = client.getWebhookInfo();
+//                if (webhookInfo != null && webhookInfo.has("url")) {
+//                    String confirmedUrl = webhookInfo.get("url").asText();
+//                    if (!confirmedUrl.equals(webhookUrl)) {
+//                        log.warn("⚠️ Webhook URL mismatch!");
+//                        log.warn("   Expected: {}", webhookUrl);
+//                        log.warn("   Got: {}", confirmedUrl);
+//                    }
+//                }
+//            } else {
+//                log.error("❌ Failed to set webhook for bot {}", bot.getBotUsername());
+//            }
 
             // Save bot
             botRepository.save(bot);

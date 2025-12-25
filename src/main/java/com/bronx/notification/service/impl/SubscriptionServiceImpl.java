@@ -2,6 +2,7 @@ package com.bronx.notification.service.impl;
 
 import com.bronx.notification.dto.subscription.SubscriptionRequest;
 import com.bronx.notification.dto.subscription.SubscriptionResponse;
+import com.bronx.notification.exceptions.BusinessException;
 import com.bronx.notification.exceptions.DuplicateResourceException;
 import com.bronx.notification.exceptions.ResourceNotFoundException;
 import com.bronx.notification.mapper.SubscriptionMapper;
@@ -17,16 +18,19 @@ import com.bronx.notification.repository.SubscriptionPlanRepository;
 import com.bronx.notification.repository.SubscriptionRepository;
 import com.bronx.notification.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-
+@Slf4j
 public class SubscriptionServiceImpl implements SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
@@ -50,6 +54,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Subscription entity = mapper.toEntity(request);
         entity.setScope(scope);
         entity.setPlan(plan);
+        entity.setRemainingCredits(plan.getNotificationsCredit());
+
+        //validate durations
+        int durationMonths=plan.getDurationMonths();
+        if(!isValidPeriod(request.startDate().toString(),request.endDate().toString(),durationMonths)){
+            throw new BusinessException("Invalid start date and end date with Plan");
+        }
+
         entity = subscriptionRepository.save(entity);
         saveHistory(entity, plan, SubscriptionAction.NEW);
         return mapper.toResponse(entity);
@@ -107,5 +119,33 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         history.setGrantedCredits(plan.getNotificationsCredit());
         history.setAction(action);
         historyRepository.save(history);
+    }
+
+
+    public boolean isValidPeriod(String startIso, String endIso, int minMonths) {
+        try {
+            if (startIso == null || endIso == null) return false;
+
+            ZonedDateTime start = ZonedDateTime.parse(startIso);
+            ZonedDateTime end = ZonedDateTime.parse(endIso);
+
+            // 1. Strict check: startDate must be less than endDate
+            if (!start.isBefore(end)) {
+                throw new BusinessException("Start date is Bigger Than End Date!");
+            }
+
+            // 2. Duration check: end must be >= (start + minMonths)
+            ZonedDateTime requiredThreshold = start.plusMonths(minMonths);
+
+            if (end.isAfter(requiredThreshold)) {
+                log.warn("Validation failed: Duration is greater than {} months", minMonths);
+                return false;
+            }
+            return true;
+
+        } catch (DateTimeParseException e) {
+            log.error("Invalid date format provided: start={}, end={}", startIso, endIso);
+            return false;
+        }
     }
 }
