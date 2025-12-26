@@ -92,7 +92,7 @@ spring:
 
 slack:
   webhook:
-    url: ${WEBHOOK_SLACK_URL:https://hooks.slack.com/services/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}
+    url: ${WEBHOOK_SLACK_URL:}
 
   # Actuator for health checks
 management:
