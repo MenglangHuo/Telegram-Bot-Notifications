@@ -4,10 +4,7 @@ import com.bronx.notification.model.audit.SoftDeletableAuditable;
 import com.bronx.notification.model.enumz.SubscriptionStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -20,6 +17,7 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Subscription extends SoftDeletableAuditable<Long> {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,6 +27,9 @@ public class Subscription extends SoftDeletableAuditable<Long> {
     @ManyToOne
     @JoinColumn(name = "subscription_plan_id", nullable = false)
     private SubscriptionPlan plan;
+
+    @Column(length=100)
+    private String name;
 
     @Column(name = "remaining_credits")
     private Long remainingCredits;
@@ -42,6 +43,10 @@ public class Subscription extends SoftDeletableAuditable<Long> {
 
     @Column(name = "end_date")
     private Instant endDate;
+
+    @Column(name = "limit_durations")
+    @Builder.Default
+    private Boolean limitDurations=false;
 
 
     @Transient

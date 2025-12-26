@@ -5,5 +5,5 @@ public enum SubscriptionStatus {
     TRIAL,
     EXPIRED,
     CANCELLED,
-    SUSPENDED
+    SUSPENDED,//beore 7day expired
 }

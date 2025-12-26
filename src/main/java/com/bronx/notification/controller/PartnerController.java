@@ -40,13 +40,13 @@ public class PartnerController {
     }
 
 
-    @PostMapping("/client")
-    public ApiResponse<PartnerResponse> getPartnerByClientId(
-        @Valid @RequestBody SecretRequest request
-    ) {
-        PartnerResponse response = partnerService.getPartnerByClientIdAndSecretKey(request.secretKey(), request.credential());
-        return ApiResponse.success(response);
-    }
+//    @PostMapping("/client")
+//    public ApiResponse<PartnerResponse> getPartnerByClientId(
+//        @Valid @RequestBody SecretRequest request
+//    ) {
+//        PartnerResponse response = partnerService.getPartnerByClientIdAndSecretKey(request.secretKey(), request.credential());
+//        return ApiResponse.success(response);
+//    }
 
     @GetMapping
     public ApiResponse<PageResponse<PartnerResponse>> listPartners(
@@ -94,18 +94,11 @@ public class PartnerController {
         return ApiResponse.success("Partner updated successfully", response);
     }
 
-    @PostMapping("/{id}/regenerate-secret")
-    public ApiResponse<PartnerResponse> regenerateSecretKey(@PathVariable Long id) {
-        log.info("Regenerating secret key for partner: {}", id);
-        PartnerResponse response = partnerService.regenerateSecretKey(id);
-        return ApiResponse.success("Secret key regenerated", response);
-    }
-
-    @PostMapping("/{id}/activate")
-    public ApiResponse<PartnerResponse> activatePartner(@PathVariable Long id) {
-        PartnerResponse response = partnerService.activatePartner(id);
-        return ApiResponse.success("Partner activated", response);
-    }
+//    @PostMapping("/{id}/activate")
+//    public ApiResponse<PartnerResponse> activatePartner(@PathVariable Long id) {
+//        PartnerResponse response = partnerService.activatePartner(id);
+//        return ApiResponse.success("Partner activated", response);
+//    }
 
 //    @PostMapping("/{id}/suspend")
 //    public ApiResponse<PartnerResponse> suspendPartner(@PathVariable Long id) {
@@ -113,10 +106,10 @@ public class PartnerController {
 //        return ApiResponse.success("Partner suspended", response);
 //    }
 
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ApiResponse<Void> deletePartner(@PathVariable Long id) {
-        partnerService.deletePartner(id);
-        return ApiResponse.success("Partner deleted successfully", null);
-    }
+//    @DeleteMapping("/{id}")
+//    @ResponseStatus(HttpStatus.NO_CONTENT)
+//    public ApiResponse<Void> deletePartner(@PathVariable Long id) {
+//        partnerService.deletePartner(id);
+//        return ApiResponse.success("Partner deleted successfully", null);
+//    }
 }

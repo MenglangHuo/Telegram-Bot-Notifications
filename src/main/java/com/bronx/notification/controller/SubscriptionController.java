@@ -6,12 +6,8 @@ import com.bronx.notification.service.SubscriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/subscriptions")
@@ -31,27 +27,36 @@ public class SubscriptionController {
         return ApiResponse.success("Subscription created successfully", response);
     }
 
+    @PutMapping("/{id}/re-new")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ApiResponse<SubscriptionResponse> reNewSubscription(
+            @PathVariable Long id,
+            @Valid @RequestBody SubscriptionRequest request
+    ) {
+
+        SubscriptionResponse response = subscriptionService.newSubscription(id,request);
+        return ApiResponse.success("ReSubscription successfully", response);
+    }
+
+
+    @PutMapping("/{id}/cancel")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ApiResponse<SubscriptionResponse> cancelSubscription(
+            @PathVariable Long id
+    ) {
+
+        SubscriptionResponse response = subscriptionService.cancelSubscription(id);
+        return ApiResponse.success("Cancel Subscription successfully", response);
+    }
+
+
+
     @GetMapping("/{id}")
     public ApiResponse<SubscriptionResponse> getSubscription(@PathVariable Long id) {
         SubscriptionResponse response = subscriptionService.findById(id);
         return ApiResponse.success(response);
     }
 
-
-    @GetMapping
-    public ApiResponse<List<SubscriptionResponse>> listSubscriptions(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(name="scope") Long scopeId,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "DESC") Sort.Direction direction
-    ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        List<SubscriptionResponse> response = subscriptionService
-                .findAll(scopeId,pageable);
-
-        return ApiResponse.success(response);
-    }
 
 //    @GetMapping("/partner/{partnerId}")
 //    public ApiResponse<PageResponse<SubscriptionResponse>> listSubscriptionsByPartner(

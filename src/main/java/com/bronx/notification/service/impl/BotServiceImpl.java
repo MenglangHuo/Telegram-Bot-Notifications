@@ -26,12 +26,6 @@ public class BotServiceImpl implements BotService {
     private final TelegramBotServiceImpl telegramBotService;
     private final TelegramBotMapper telegramBotMapper;
 
-//    @Value("${telegram.webhook.base-url}")
-//    private String baseUrl;
-//
-//    @Value("${telegram.webhook.path}")
-//    private String path;
-
     @Override
     @Transactional
     public TelegramBotResponse createNewBot(BotRequest request) {
@@ -48,8 +42,6 @@ public class BotServiceImpl implements BotService {
                 .build();
         try {
             TelegramBot savedBot = telegramBotRepository.save(telegramBot);
-//            String webhookUrl = String.format("%s%s/%s", baseUrl, path, savedBot.getId());
-//            savedBot.setWebhookUrl(webhookUrl);
             savedBot = telegramBotRepository.save(savedBot);
 
             telegramBotService.registerBot(savedBot);

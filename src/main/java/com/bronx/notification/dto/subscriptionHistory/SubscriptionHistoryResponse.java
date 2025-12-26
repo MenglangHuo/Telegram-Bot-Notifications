@@ -1,5 +1,7 @@
 package com.bronx.notification.dto.subscriptionHistory;
 
+import com.bronx.notification.dto.subscription.SubscriptionMainResponse;
+import com.bronx.notification.dto.subscriptionPlan.SubscriptionPlanResponse;
 import com.bronx.notification.model.enumz.SubscriptionAction;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,8 +14,8 @@ import java.time.Instant;
 @Builder
 public class SubscriptionHistoryResponse {
     private Long id;
-    private Long subscriptionId;
-    private Long planId;
+    private SubscriptionMainResponse subscription;
+    private SubscriptionPlanResponse plan;
     private Instant startDate;
     private Instant endDate;
     private Long grantedCredits;

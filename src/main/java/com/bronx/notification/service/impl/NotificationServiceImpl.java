@@ -36,7 +36,6 @@ public class NotificationServiceImpl implements NotificationService {
     private final RabbitTemplate rabbitTemplate;
 
 
-
     @Override
     @Transactional
     public void createAndQueueNotification(TelegramMessageRequest dto) {

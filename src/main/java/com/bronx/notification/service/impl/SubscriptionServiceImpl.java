@@ -22,8 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -40,11 +38,12 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final SubscriptionMapper mapper;
 
     @Override
+    @Transactional
     public SubscriptionResponse create(SubscriptionRequest request) {
         OrganizationUnit scope = orgUnitRepository.findById(request.orgUnitId())
                 .orElseThrow(() -> new ResourceNotFoundException("Organization unit not found with id: " + request.orgUnitId()));
         SubscriptionPlan plan = planRepository.findById(request.planId())
-                .orElseThrow(() -> new ResourceNotFoundException("Subscription plan not found with id: " + request.planId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription plan not found with id: {} " + request.planId()));
 
         // Example business rule: Check if scope already has an active subscription
          if (subscriptionRepository.findByScopeIdAndSubscriptionId(scope.getId(),plan.getId()).isPresent()) {
@@ -54,6 +53,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Subscription entity = mapper.toEntity(request);
         entity.setScope(scope);
         entity.setPlan(plan);
+        entity.setStatus(SubscriptionStatus.ACTIVE);
         entity.setRemainingCredits(plan.getNotificationsCredit());
 
         //validate durations
@@ -81,17 +81,16 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         mapper.updateEntityFromRequest(request, entity);
         entity.setScope(scope);
         entity.setPlan(plan);
+        entity.setRemainingCredits(plan.getNotificationsCredit()); //old + new credit
+        //validate durations
+        if(!isValidPeriod(request.startDate().toString(),request.endDate().toString(),plan.getDurationMonths())){
+            throw new BusinessException("Invalid start date and end date with Plan");
+        }
         entity = subscriptionRepository.save(entity);
         saveHistory(entity, plan,request.subscriptionAction());
         return mapper.toResponse(entity);
     }
 
-    @Override
-    public void delete(Long id) {
-        Subscription entity = subscriptionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found with id: " + id));
-        subscriptionRepository.delete(entity);
-    }
 
     @Override
     public SubscriptionResponse findById(Long id) {
@@ -110,6 +109,47 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return mapper.toResponses(subscriptionRepository.findActiveByScope(scope,pageable));
     }
 
+    @Override
+    @Transactional
+    public SubscriptionResponse newSubscription(Long id,SubscriptionRequest request) {
+        Subscription subscription=subscriptionRepository.findById(id)
+                .orElseThrow(()->new ResourceNotFoundException("Subscription Not Found"));
+        OrganizationUnit scope = orgUnitRepository.findById(request.orgUnitId())
+                .orElseThrow(() -> new ResourceNotFoundException("Organization unit not found with id: " + request.orgUnitId()));
+        SubscriptionPlan plan = planRepository.findById(request.planId())
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription plan not found with id: " + request.planId()));
+
+        subscription.setLimitDurations(plan.isUnlimitedDuration());
+        subscription.setScope(scope);
+        subscription.setPlan(plan);
+        subscription.setRemainingCredits(subscription.getRemainingCredits() +plan.getNotificationsCredit()); //old + new credit
+
+        //validate durations
+        if(!isValidPeriod(request.startDate().toString(),request.endDate().toString(),plan.getDurationMonths())){
+            throw new BusinessException("Invalid start date and end date with Plan");
+        }
+
+        subscription = subscriptionRepository.save(subscription);
+        saveHistory(subscription, plan, request.subscriptionAction());
+        return mapper.toResponse(subscription);
+
+    }
+
+    @Override
+    @Transactional
+    public SubscriptionResponse cancelSubscription(Long subscriptionId) {
+        Subscription subscription=subscriptionRepository.findById(subscriptionId)
+                .orElseThrow(()->new ResourceNotFoundException("Subscription Not Found"));
+        SubscriptionPlan plan = planRepository.findById(subscription.getPlan().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription plan not found with id: "));
+
+
+        subscription.setStatus(SubscriptionStatus.CANCELLED);
+        subscription = subscriptionRepository.save(subscription);
+        saveHistory(subscription, plan, SubscriptionAction.CANCELLATION);
+        return mapper.toResponse(subscription);
+    }
+
     private void saveHistory(Subscription sub, SubscriptionPlan plan, SubscriptionAction action) {
         SubscriptionHistory history = new SubscriptionHistory();
         history.setSubscription(sub);
@@ -120,7 +160,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         history.setAction(action);
         historyRepository.save(history);
     }
-
 
     public boolean isValidPeriod(String startIso, String endIso, int minMonths) {
         try {

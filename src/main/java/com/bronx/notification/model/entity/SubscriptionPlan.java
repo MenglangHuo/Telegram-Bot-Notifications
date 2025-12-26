@@ -28,10 +28,12 @@ public class SubscriptionPlan extends SoftDeletableAuditable<Long> implements Se
 
     private Integer durationMonths; // 1,3,6,12
 
-    @Column(name = "notification_credit", nullable = false, unique = true)
+    @Column(name = "notification_credit", nullable = false)
     private Long notificationsCredit;
 
-    private boolean isUnlimitedDuration; //base on credit usage
+    @Column(name = "is_unlimited_duration", nullable = false)
+    private boolean isUnlimitedDuration=false; //base on credit usage
+
 
     private BigDecimal price;
 }

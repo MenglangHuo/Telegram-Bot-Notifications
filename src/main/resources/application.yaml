@@ -6,6 +6,15 @@ server:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
     min-response-size: 1024
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: ${SWAGGER_ENABLE:true}
+  show-actuator: false
+  default-produces-media-type: application/json
 
 spring:
   application:
@@ -79,6 +88,11 @@ spring:
           max-attempts: 3
           multiplier: 2.0
           max-interval: 10000
+
+
+slack:
+  webhook:
+    url: ${WEBHOOK_SLACK_URL:https://hooks.slack.com/services/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}
 
   # Actuator for health checks
 management:

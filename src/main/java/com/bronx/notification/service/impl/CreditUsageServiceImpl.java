@@ -33,7 +33,6 @@ public class CreditUsageServiceImpl implements CreditUsageService {
         Subscription subscription = subscriptionRepository.findById(request.getSubscriptionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Subscription not found with id: " + request.getSubscriptionId()));
 
-        // Business rule example: Check if remaining credits are sufficient
         if (subscription.getRemainingCredits() < request.getUsedCredits()) {
             throw new BusinessException("Insufficient credits");
         }
@@ -41,7 +40,6 @@ public class CreditUsageServiceImpl implements CreditUsageService {
         Notification notification = notificationRepository.findById(request.getNotificationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + request.getSubscriptionId()));
 
-        // Business rule example: Check if remaining credits are sufficient
         if (subscription.getRemainingCredits() < request.getUsedCredits()) {
             throw new BusinessException("Insufficient credits");
         }

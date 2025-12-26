@@ -2,7 +2,7 @@
 target/
 .mvn/wrapper/maven-wrapper.jar
 logs/
-!**/.env
+.env
 !**/src/main/**/target/
 !**/src/test/**/target/
 

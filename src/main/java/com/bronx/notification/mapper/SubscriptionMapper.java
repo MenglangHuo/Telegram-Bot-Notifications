@@ -1,4 +1,5 @@
 package com.bronx.notification.mapper;
+import com.bronx.notification.dto.subscription.SubscriptionMainResponse;
 import com.bronx.notification.dto.subscription.SubscriptionRequest;
 import com.bronx.notification.dto.subscription.SubscriptionResponse;
 import com.bronx.notification.dto.subscriptionPlan.SubscriptionPlanRequest;
@@ -27,6 +28,8 @@ public interface SubscriptionMapper {
 
 //    @Mapping(source = "plan.id", target = "plan")
     SubscriptionResponse toResponse(Subscription entity);
+
+    SubscriptionMainResponse toMainResponse(Subscription entity);
 
     List<SubscriptionResponse> toResponses(List<Subscription> entities);
 

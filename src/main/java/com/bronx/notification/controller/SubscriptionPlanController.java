@@ -1,13 +1,9 @@
 package com.bronx.notification.controller;
 
 import com.bronx.notification.dto.baseResponse.ApiResponse;
-import com.bronx.notification.dto.baseResponse.PageResponse;
-import com.bronx.notification.dto.subscription.SubscriptionRequest;
-import com.bronx.notification.dto.subscription.SubscriptionResponse;
 import com.bronx.notification.dto.subscriptionPlan.SubscriptionPlanRequest;
 import com.bronx.notification.dto.subscriptionPlan.SubscriptionPlanResponse;
 import com.bronx.notification.service.SubscriptionPlanService;
-import com.bronx.notification.service.SubscriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +52,7 @@ public class SubscriptionPlanController {
     public ApiResponse<List<SubscriptionPlanResponse>> listSubscriptionPlans(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(name = "search") String search,
+            @RequestParam(name = "search",required=false) String search,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") Sort.Direction direction
     ) {

@@ -21,8 +21,8 @@ public class SubscriptionHistoryController {
 
     private final SubscriptionHistoryService subscriptionHistoryService;
 
-    @GetMapping("subscription-id/{id}")
-    public ApiResponse<List<SubscriptionHistoryResponse>> listSubscriptionsHistoryBySubscritpionId(
+    @GetMapping("/{id}/subscription")
+    public ApiResponse<List<SubscriptionHistoryResponse>> listSubscriptionsHistoryBySubscriptionId(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @PathVariable Long id,
@@ -44,7 +44,5 @@ public class SubscriptionHistoryController {
                 .findById(id);
         return ApiResponse.success(response);
     }
-
-
 
 }

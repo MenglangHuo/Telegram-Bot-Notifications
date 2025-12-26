@@ -19,12 +19,12 @@ public class NotificationApiController {
   private final ValidateHeaderService validateHeaderService;
 
     @PostMapping("/send")
-    public ResponseEntity<ApiResponse<Object>> sendNotificaiton(
+    public ResponseEntity<ApiResponse<Object>> sendNotification(
             @RequestHeader("X-Client-Id") String clientId,
             @RequestHeader("X-Secret-Key") String secretKey,
             @RequestBody TelegramMessageRequest request) {
 
-//        validateHeaderService.validate(clientId, secretKey);
+        validateHeaderService.validate(clientId, secretKey);
         notificationService.createAndQueueNotification( request);
         return ResponseEntity.ok(ApiResponse.success(
                 "notification was send to queue"

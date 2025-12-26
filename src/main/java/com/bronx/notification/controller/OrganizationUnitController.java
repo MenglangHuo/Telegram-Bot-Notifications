@@ -12,9 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/organization-units")
@@ -62,49 +60,49 @@ public class OrganizationUnitController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-
-        log.info("📥 DELETE /api/v1/organization-units/{}", id);
-
-        orgUnitService.delete(id);
-
-        return ResponseEntity.ok(ApiResponse.success( "Organization unit deleted successfully",null));
-    }
+//    @DeleteMapping("/{id}")
+//    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+//
+//        log.info("📥 DELETE /api/v1/organization-units/{}", id);
+//
+//        orgUnitService.delete(id);
+//
+//        return ResponseEntity.ok(ApiResponse.success( "Organization unit deleted successfully",null));
+//    }
 
     // Hierarchy endpoints
-    @GetMapping("/company/{companyId}/roots")
-    public ResponseEntity<ApiResponse<List<OrganizationUnitResponse>>> getRootUnits(
-            @PathVariable Long companyId) {
-
-        log.info("📥 GET /api/v1/organization-units/company/{}/roots", companyId);
-
-        List<OrganizationUnitResponse> response = orgUnitService.getRootUnits(companyId);
-
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @GetMapping("/{id}/children")
-    public ResponseEntity<ApiResponse<List<OrganizationUnitResponse>>> getChildren(
-            @PathVariable Long id) {
-
-        log.info("📥 GET /api/v1/organization-units/{}/children", id);
-
-        List<OrganizationUnitResponse> response = orgUnitService.getChildren(id);
-
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @GetMapping("/{id}/descendants")
-    public ResponseEntity<ApiResponse<List<OrganizationUnitResponse>>> getDescendants(
-            @PathVariable Long id) {
-
-        log.info("📥 GET /api/v1/organization-units/{}/descendants", id);
-
-        List<OrganizationUnitResponse> response = orgUnitService.getDescendants(id);
-
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
+//    @GetMapping("/company/{companyId}/roots")
+//    public ResponseEntity<ApiResponse<List<OrganizationUnitResponse>>> getRootUnits(
+//            @PathVariable Long companyId) {
+//
+//        log.info("📥 GET /api/v1/organization-units/company/{}/roots", companyId);
+//
+//        List<OrganizationUnitResponse> response = orgUnitService.getRootUnits(companyId);
+//
+//        return ResponseEntity.ok(ApiResponse.success(response));
+//    }
+//
+//    @GetMapping("/{id}/children")
+//    public ResponseEntity<ApiResponse<List<OrganizationUnitResponse>>> getChildren(
+//            @PathVariable Long id) {
+//
+//        log.info("📥 GET /api/v1/organization-units/{}/children", id);
+//
+//        List<OrganizationUnitResponse> response = orgUnitService.getChildren(id);
+//
+//        return ResponseEntity.ok(ApiResponse.success(response));
+//    }
+//
+//    @GetMapping("/{id}/descendants")
+//    public ResponseEntity<ApiResponse<List<OrganizationUnitResponse>>> getDescendants(
+//            @PathVariable Long id) {
+//
+//        log.info("📥 GET /api/v1/organization-units/{}/descendants", id);
+//
+//        List<OrganizationUnitResponse> response = orgUnitService.getDescendants(id);
+//
+//        return ResponseEntity.ok(ApiResponse.success(response));
+//    }
 
     @GetMapping("/{id}/ancestors")
     public ResponseEntity<ApiResponse<List<OrganizationUnitResponse>>> getAncestors(
@@ -128,29 +126,29 @@ public class OrganizationUnitController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @GetMapping("/{id}/subtree")
-    public ResponseEntity<ApiResponse<OrganizationUnitTreeNode>> getSubtree(
-            @PathVariable Long id) {
+//    @GetMapping("/{id}/subtree")
+//    public ResponseEntity<ApiResponse<OrganizationUnitTreeNode>> getSubtree(
+//            @PathVariable Long id) {
+//
+//        log.info("📥 GET /api/v1/organization-units/{}/subtree", id);
+//
+//        OrganizationUnitTreeNode response = orgUnitService.getSubtree(id);
+//
+//        return ResponseEntity.ok(ApiResponse.success(response));
+//    }
 
-        log.info("📥 GET /api/v1/organization-units/{}/subtree", id);
-
-        OrganizationUnitTreeNode response = orgUnitService.getSubtree(id);
-
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-
-    @PutMapping("/{parentId}/reorder")
-    public ResponseEntity<ApiResponse<Void>> reorderChildren(
-            @PathVariable Long parentId,
-            @RequestBody List<Long> orderedChildIds) {
-
-        log.info("📥 PUT /api/v1/organization-units/{}/reorder", parentId);
-
-        orgUnitService.reorderChildren(parentId, orderedChildIds);
-
-        return ResponseEntity.ok(ApiResponse.success( "Children reordered successfully",null));
-    }
+//
+//    @PutMapping("/{parentId}/reorder")
+//    public ResponseEntity<ApiResponse<Void>> reorderChildren(
+//            @PathVariable Long parentId,
+//            @RequestBody List<Long> orderedChildIds) {
+//
+//        log.info("📥 PUT /api/v1/organization-units/{}/reorder", parentId);
+//
+//        orgUnitService.reorderChildren(parentId, orderedChildIds);
+//
+//        return ResponseEntity.ok(ApiResponse.success( "Children reordered successfully",null));
+//    }
 
     // Search and filter
     @GetMapping("/company/{companyId}/search")
@@ -189,16 +187,16 @@ public class OrganizationUnitController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @GetMapping("/company/{companyId}/leaf-nodes")
-    public ResponseEntity<ApiResponse<List<OrganizationUnitResponse>>> getLeafNodes(
-            @PathVariable Long companyId) {
-
-        log.info("📥 GET /api/v1/organization-units/company/{}/leaf-nodes", companyId);
-
-        List<OrganizationUnitResponse> response = orgUnitService.getLeafNodes(companyId);
-
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
+//    @GetMapping("/company/{companyId}/leaf-nodes")
+//    public ResponseEntity<ApiResponse<List<OrganizationUnitResponse>>> getLeafNodes(
+//            @PathVariable Long companyId) {
+//
+//        log.info("📥 GET /api/v1/organization-units/company/{}/leaf-nodes", companyId);
+//
+//        List<OrganizationUnitResponse> response = orgUnitService.getLeafNodes(companyId);
+//
+//        return ResponseEntity.ok(ApiResponse.success(response));
+//    }
 
 //    @GetMapping("/{id}/employee-count")
 //    public ResponseEntity<ApiResponse<Map<String, Integer>>> getTotalEmployeeCount(
@@ -221,26 +219,16 @@ public class OrganizationUnitController {
 //        return ResponseEntity.ok(ApiResponse.success(, "Employee count updated",null));
 //    }
 
-    // Validation
-    @GetMapping("/{id}/can-delete")
-    public ResponseEntity<ApiResponse<Map<String, Boolean>>> canDelete(@PathVariable Long id) {
 
-        log.info("📥 GET /api/v1/organization-units/{}/can-delete", id);
-
-        boolean canDelete = orgUnitService.canDelete(id);
-
-        return ResponseEntity.ok(ApiResponse.success(Map.of("canDelete", canDelete)));
-    }
-
-    @GetMapping("/{childId}/is-descendant-of/{ancestorId}")
-    public ResponseEntity<ApiResponse<Map<String, Boolean>>> isDescendantOf(
-            @PathVariable Long childId,
-            @PathVariable Long ancestorId) {
-
-        log.info("📥 GET /api/v1/organization-units/{}/is-descendant-of/{}", childId, ancestorId);
-
-        boolean isDescendant = orgUnitService.isDescendantOf(childId, ancestorId);
-
-        return ResponseEntity.ok(ApiResponse.success(Map.of("isDescendant", isDescendant)));
-    }
+//    @GetMapping("/{childId}/is-descendant-of/{ancestorId}")
+//    public ResponseEntity<ApiResponse<Map<String, Boolean>>> isDescendantOf(
+//            @PathVariable Long childId,
+//            @PathVariable Long ancestorId) {
+//
+//        log.info("📥 GET /api/v1/organization-units/{}/is-descendant-of/{}", childId, ancestorId);
+//
+//        boolean isDescendant = orgUnitService.isDescendantOf(childId, ancestorId);
+//
+//        return ResponseEntity.ok(ApiResponse.success(Map.of("isDescendant", isDescendant)));
+//    }
 }
