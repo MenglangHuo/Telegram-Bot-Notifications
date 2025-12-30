@@ -1,4 +1,5 @@
 package com.bronx.notification.dto.telegramSender;
+import com.bronx.notification.model.enumz.NotificationPriority;
 import com.bronx.notification.model.enumz.TelegramMessageType;
 import com.bronx.notification.model.enumz.TelegramParseMode;
 import jakarta.validation.constraints.NotBlank;
@@ -25,6 +26,9 @@ public class TelegramMessageRequest {
 
     @Builder.Default
     private boolean isOwnCustom = false;
+
+    @Builder.Default
+    private NotificationPriority priority=NotificationPriority.NORMAL;
 
     @Builder.Default
         private TelegramParseMode parseMode=TelegramParseMode.HTML;

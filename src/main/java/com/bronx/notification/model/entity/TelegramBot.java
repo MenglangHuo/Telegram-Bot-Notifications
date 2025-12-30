@@ -51,4 +51,12 @@ public class TelegramBot extends SoftDeletableAuditable<Long> {
         if (status != BotStatus.ACTIVE) return false;
         return true;
     }
+
+    /**
+     * Check if bot is ready to send messages
+     */
+    @Transient
+    public boolean isReady() {
+        return subscription != null && subscription.isValid();
+    }
 }

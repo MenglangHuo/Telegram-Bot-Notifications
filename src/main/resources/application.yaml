@@ -19,6 +19,9 @@ springdoc:
 spring:
   application:
     name: telegram-bot-notification
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:default}
@@ -66,6 +69,20 @@ spring:
       write-dates-as-timestamps: false
       fail-on-empty-beans: false
 
+#redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redis123}
+      timeout: ${REDIS_TIMEOUT:2000ms}
+      lettuce:
+        pool:
+          max-active: ${REDIS_POOL_MAX_ACTIVE:20}
+          max-idle: ${REDIS_POOL_MAX_IDLE:10}
+          min-idle: ${REDIS_POOL_MIN_IDLE:5}
+
+#rabbitmq
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
@@ -89,10 +106,45 @@ spring:
           multiplier: 2.0
           max-interval: 10000
 
+# Credit System Configuration
+credit:
+  # Processing mode: REDIS_BATCH or DIRECT_DB
+  mode: ${CREDIT_MODE:REDIS_BATCH}
+  redis:
+    enabled: true
+    key-prefix: "credit:subscription:"
+    pending-key-prefix: "credit:pending:"
 
+  sync:
+    # How often to sync Redis -> DB (milliseconds) 2minutes
+    interval: ${CREDIT_SYNC_INTERVAL:120000}
+    # Max records per batch insert
+    batch-size: ${CREDIT_BATCH_SIZE:100}
+    # Retry count on failure
+    retry-count: ${CREDIT_RETRY_COUNT:3}
+    # Enable/disable scheduler
+    enabled: true
+
+# Slack Integration
 slack:
-  webhook:
-    url: ${WEBHOOK_SLACK_URL:}
+  enabled: true
+  webhook-url: ${SLACK_WEBHOOK_URL:https://hooks.slack.com/services/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}
+  # Send async (non-blocking)
+  async: ${SLACK_ASYNC:true}
+  # Max retries
+  max-retries: ${SLACK_MAX_RETRY:2}
+  # Connection timeout (ms)
+  connect-timeout: ${SLACK_CONNECT_TIMEOUT:5000}
+  # Read timeout (ms)
+  read-timeout: ${SLACK_READ_TIMEOUT:10000}
+
+#webclient
+webclient:
+  pool:
+    max-connections: 500
+    max-idle-time: 20      # seconds
+    max-life-time: 60      # seconds
+    pending-acquire-timeout: 45
 
   # Actuator for health checks
 management:

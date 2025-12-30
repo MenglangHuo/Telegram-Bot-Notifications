@@ -16,14 +16,15 @@ public class RabbitMqConfig {
     public static final String NOTIFICATION_QUEUE = "notification.message.queue";
     public static final String NOTIFICATION_RETRY_QUEUE = "notification.retry.queue";
     public static final String NOTIFICATION_DLQ = "notification.dlq";
-
+    public static final String CREDIT_USAGE_QUEUE = "credit.usage.queue";
     // Exchange names
     public static final String NOTIFICATION_EXCHANGE = "notification.exchange";
     public static final String RETRY_EXCHANGE = "retry.exchange";
-
+    public static final String CREDIT_EXCHANGE = "credit.exchange";
     // Routing keys
     public static final String ROUTING_KEY = "notification.message";
     public static final String RETRY_ROUTING_KEY = "notification.retry";
+    public static final String CREDIT_ROUTING_KEY = "credit.usage";
 
     @Bean
     public Jackson2JsonMessageConverter messageConverter() {
@@ -88,5 +89,22 @@ public class RabbitMqConfig {
         return BindingBuilder.bind(retryQueue)
                 .to(retryExchange)
                 .with(RETRY_ROUTING_KEY);
+    }
+
+    // ==================== Credit Usage Queue ====================
+    @Bean
+    public DirectExchange creditExchange() {
+        return new DirectExchange(CREDIT_EXCHANGE, true, false);
+    }
+    @Bean
+    public Queue creditUsageQueue() {
+        return QueueBuilder.durable(CREDIT_USAGE_QUEUE)
+                .build();
+    }
+    @Bean
+    public Binding creditUsageBinding() {
+        return BindingBuilder.bind(creditUsageQueue())
+                .to(creditExchange())
+                .with(CREDIT_ROUTING_KEY);
     }
 }

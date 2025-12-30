@@ -10,7 +10,10 @@ import com.bronx.notification.model.entity.TelegramBot;
 import com.bronx.notification.model.enumz.NotificationStatus;
 import com.bronx.notification.repository.NotificationRepository;
 import com.bronx.notification.repository.TelegramBotRepository;
+import com.bronx.notification.service.SlackWebhookService;
 import com.bronx.notification.service.impl.TelegramRequestMessage;
+import com.bronx.notification.service.impl.creditMessage.CreditService;
+import com.bronx.notification.service.impl.creditMessage.CreditServiceFactory;
 import com.bronx.notification.service.impl.telegramMessage.TelegramMessageSender;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +33,8 @@ public class NotificationConsumer {
     private final RabbitTemplate rabbitTemplate;
     private final TelegramMessageSender messageSender;
     private final TelegramRequestMessage telegramRequestMessage; // Updated to handle unified
+    private final CreditServiceFactory creditServiceFactory;
+    private final SlackWebhookService slackWebhookService;
 
     @RabbitListener(
             queues = RabbitMqConfig.NOTIFICATION_QUEUE,
@@ -55,7 +60,7 @@ public class NotificationConsumer {
                     .orElseThrow(() -> new ResourceNotFoundException("Bot not found: " + notification.getBotUsername()));
 
             if (!bot.isHealthy()) {
-                handleFailure(notification, "Bot is not healthy");
+                handleFailure(notification, "Bot is not healthy",message);
                 return;
             }
 
@@ -73,8 +78,9 @@ public class NotificationConsumer {
                 notification.setSentAt(Instant.now());
                 notification.setTelegramMessageId(response.getMessageId());
                 log.info("✅ Notification {} sent successfully", notification.getId());
+                slackWebhookService.sendNotificationToSlack(notification);
             } else {
-                handleFailure(notification, response.getErrorMessage());
+                handleFailure(notification, response.getErrorMessage(),message);
             }
 
             notificationRepository.save(notification);
@@ -85,12 +91,24 @@ public class NotificationConsumer {
         }
     }
 
-    private void handleFailure(Notification notification, String reason) {
+    private void handleFailure(Notification notification, String reason, NotificationMessage message) {
         notification.setStatus(NotificationStatus.FAILED);
         notification.setFailedAt(Instant.now());
         notification.setFailureReason(reason);
-
+        // Rollback credits
+        if (notification.getSubscription() != null) {
+            CreditService creditService = creditServiceFactory.getCreditService();
+            creditService.rollbackCredit(
+                    notification.getSubscription().getId(),
+                    notification.getCreditCost(),
+                    null // No tracking ID in this context
+            );
+            log.info("Credits rolled back for failed notification {}", notification.getId());
+        }
         log.error("Notification {} failed: {}", notification.getId(), reason);
+        // Send failure to Slack
+        slackWebhookService.sendMessage(String.format(
+                "❌ Notification %d failed: %s", notification.getId(), reason));
     }
 
     private void handleRetry(NotificationMessage message) {
@@ -107,8 +125,17 @@ public class NotificationConsumer {
                     message.getRetryCount(),
                     delaySeconds);
         } else {
-            log.error("❌ Max retries exceeded for notification {}",
-                    message.getId());
+            log.error("❌ Max retries exceeded for notification {}", message.getId());
+            // Rollback credits on final failure
+            if (message.getSubscriptionId() != null) {
+                CreditService creditService = creditServiceFactory.getCreditService();
+                creditService.rollbackCredit(
+                        message.getSubscriptionId(),
+                        message.getCreditCost(),
+                        null);
+            }
+            slackWebhookService.sendMessage(String.format(
+                    "❌ Notification %d failed after max retries", message.getId()));
         }
     }
     private void requeueForRetry(NotificationMessage message, long delaySeconds) {

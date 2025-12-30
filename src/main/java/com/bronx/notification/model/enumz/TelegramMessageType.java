@@ -5,6 +5,8 @@ public enum TelegramMessageType {
     PHOTO,
     VIDEO,
     AUDIO,
-    DOCUMENT
-
+    DOCUMENT,
+    ANIMATION,
+    VOICE,
+    STICKER
 }

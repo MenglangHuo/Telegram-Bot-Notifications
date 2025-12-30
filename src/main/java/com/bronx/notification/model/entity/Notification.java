@@ -3,8 +3,7 @@ import com.bronx.notification.model.audit.SoftDeletableAuditable;
 import com.bronx.notification.model.enumz.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -15,8 +14,10 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@Table(name = "notifications"
-)
+@AllArgsConstructor
+@Builder
+@NoArgsConstructor
+@Table(name = "notifications")
 public class Notification extends SoftDeletableAuditable<Long> implements Serializable {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -34,6 +35,7 @@ public class Notification extends SoftDeletableAuditable<Long> implements Serial
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
+    @Builder.Default
     private TelegramMessageType type = TelegramMessageType.TEXT;
 
     @Column(name = "media_url", length = 2048)
@@ -45,6 +47,7 @@ public class Notification extends SoftDeletableAuditable<Long> implements Serial
     private String message;
 
     @Column(name = "is_own_custom")
+    @Builder.Default
     private boolean isOwnCustom=true;
 
     @Column(name = "parse_mode",length = 30)
@@ -57,17 +60,21 @@ public class Notification extends SoftDeletableAuditable<Long> implements Serial
 
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", nullable = false, length = 20)
+    @Builder.Default
     private NotificationPriority priority = NotificationPriority.NORMAL;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
     private NotificationStatus status = NotificationStatus.QUEUED;
 
     // Retry tracking
     @Column(name = "retry_count", nullable = false)
+    @Builder.Default
     private Integer retryCount = 0;
 
     @Column(name = "max_retries", nullable = false)
+    @Builder.Default
     private Integer maxRetries = 3;
 
     // Delivery tracking
@@ -92,6 +99,14 @@ public class Notification extends SoftDeletableAuditable<Long> implements Serial
 
     @Column(name = "telegram_message_id")
     private String telegramMessageId; // Telegram's message ID after sending
+
+
+    /**
+     * Credit cost for this notification (usually 1)
+     */
+    @Column(name = "credit_cost")
+    @Builder.Default
+    private int creditCost = 1;
 
     @Transient
     public boolean canRetry() {

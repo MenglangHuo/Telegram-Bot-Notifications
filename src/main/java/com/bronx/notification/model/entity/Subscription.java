@@ -2,11 +2,8 @@ package com.bronx.notification.model.entity;
 
 import com.bronx.notification.model.audit.SoftDeletableAuditable;
 import com.bronx.notification.model.enumz.SubscriptionStatus;
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.beans.Transient;
 import java.time.Instant;
@@ -51,8 +48,18 @@ public class Subscription extends SoftDeletableAuditable<Long> {
 
     @Transient
     public boolean isValid() {
-        if (status != SubscriptionStatus.ACTIVE) return false;
+        if (status == SubscriptionStatus.CANCELLED ) return false;
         if (endDate != null && Instant.now().isAfter(endDate)) return false;
         return true;
+    }
+
+    @Transient
+    public boolean isDeleted(){
+        return this.getDeletedAt()!=null;
+    }
+
+    @Transient
+    public boolean hasCredits(long amount) {
+        return remainingCredits != null && remainingCredits >= amount;
     }
 }

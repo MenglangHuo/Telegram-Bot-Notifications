@@ -56,12 +56,12 @@ public class GlobalExceptionHandler {
                 .build();
     }
 
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ApiResponse<Void> handleGenericException(Exception ex) {
-        log.error("Unexpected error", ex);
-        return ApiResponse.error("An unexpected error occurred: " + ex.getMessage());
-    }
+//    @ExceptionHandler(Exception.class)
+//    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+//    public ApiResponse<Void> handleGenericException(Exception ex) {
+//        log.error("Unexpected error", ex);
+//        return ApiResponse.error("An unexpected error occurred: " + ex.getMessage());
+//    }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException e) {
@@ -82,10 +82,24 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(e.getMessage()));
     }
 
-//    @ExceptionHandler(Exception.class)
-//    public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception e) {
-//        log.error("Unhandled exception", e);
-//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                .body(ApiResponse.error("An unexpected error occurred"));
-//    }
+    @ExceptionHandler(InsufficientCreditsException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientCredits(InsufficientCreditsException ex) {
+        log.warn("Insufficient credits: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(Map.of(
+                "error", "INSUFFICIENT_CREDITS",
+                "message", ex.getMessage(),
+                "subscriptionId", ex.getSubscriptionId(),
+                "requestedCredits", ex.getRequestedCredits(),
+                "availableCredits", ex.getAvailableCredits(),
+                "timestamp", Instant.now().toString()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "error", "INTERNAL_SERVER_ERROR",
+                "message", "An unexpected error occurred",
+                "timestamp", Instant.now().toString()));
+    }
 }

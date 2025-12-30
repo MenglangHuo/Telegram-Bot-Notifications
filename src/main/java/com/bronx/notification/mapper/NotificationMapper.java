@@ -14,6 +14,7 @@ public interface NotificationMapper {
 //    @Mapping(target = "mediaType", expression = "java(TelegramMessageType.valueOf(dto.getMessageType().toUpperCase()))")
     @Mapping(target = "teleTemplateName", source = "templateName")
     @Mapping(target = "queuedAt", expression = "java(java.time.Instant.now())")
+    @Mapping(target = "telegramParseMode", source = "parseMode")
     Notification toEntity(TelegramMessageRequest dto);
 
     @Mapping(target = "subscriptionId",source = "subscription.id")

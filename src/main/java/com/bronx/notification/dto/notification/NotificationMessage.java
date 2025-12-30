@@ -27,9 +27,11 @@ public class NotificationMessage implements Serializable {
     private String botUsername;
     private String teleTemplateName;
     private TelegramMessageType type;
+    private int creditCost = 1;
     private TelegramParseMode telegramParseMode=TelegramParseMode.HTML;
     private String url;
     private String caption;
+
     private JsonNode metaData;
     private NotificationStatus status;
     private String message;

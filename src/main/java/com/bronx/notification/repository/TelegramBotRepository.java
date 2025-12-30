@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface TelegramBotRepository extends JpaRepository<TelegramBot, Long> {
     List<TelegramBot> findByStatus(BotStatus status);
 
+    @Query("select t from TelegramBot t where t.botUsername = ?1 and t.status='ACTIVE'")
     Optional<TelegramBot> findByBotUsername(String username);
 
     @Query("""
@@ -53,16 +54,8 @@ WHERE b.status = :status
 """)
     List<TelegramBot> findActiveBotsWithSubscription(@Param("status") BotStatus status);
 
-
-    @Query(value = """
-        SELECT t.bot_username 
-        FROM employees e 
-        INNER JOIN organization_units o ON e.org_unit_id = o.id 
-        INNER JOIN subscriptions s ON o.id = s.org_unit_id 
-        INNER JOIN telegram_bots t ON s."id" = t.subscription_id 
-        WHERE e.employee_code = :employeeCode
-        """, nativeQuery = true)
-    Optional<String> findBotUsernameByEmployeeCode(@Param("employeeCode") String employeeCode);
+    boolean existsByBotUsername(String botUsername);
 
 }
+
 
