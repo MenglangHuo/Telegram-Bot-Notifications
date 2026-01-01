@@ -59,24 +59,11 @@ public class NotificationServiceImpl implements NotificationService {
         if (subscription == null || !subscription.isValid()) {
             throw new BusinessException("Bot's subscription is not active");
         }
-        // 2. Check and reserve credits BEFORE creating notification
+
+        // 2. Check and get credit type (redis or db direct)
         CreditService creditService = creditServiceFactory.getCreditService();
         int creditCost = 1; // Default cost per message
-        CreditOperationResult creditResult = creditService.checkAndDecrementCredit(
-                subscription.getId(),
-                creditCost,
-                null // Notification ID not yet created
-        );
-        if (!creditResult.isSuccess()) {
-            log.warn("Insufficient credits for subscription {}: {}",
-                    subscription.getId(), creditResult.getMessage());
-            throw new InsufficientCreditsException(
-                    subscription.getId(),
-                    creditCost,
-                    creditResult.getRemainingCredits());
-        }
-        log.debug("Credits reserved for subscription {}, remaining: {}",
-                subscription.getId(), creditResult.getRemainingCredits());
+
         // 3. Create notification entity
         Notification notification = notificationMapper.toEntity(dto);
         notification.setSubscription(subscription);
@@ -108,7 +95,7 @@ public class NotificationServiceImpl implements NotificationService {
         } else {
             if (dto.isOwnCustom() && dto.getType() != TelegramMessageType.TEXT) {
                 // Rollback credit if validation fails
-                creditService.rollbackCredit(subscription.getId(), creditCost, creditResult.getTrackingId());
+//                creditService.rollbackCredit(subscription.getId(), creditCost, creditResult.getTrackingId());
                 throw new BusinessException("Invalid! if own custom true therefore message type must be type TEXT");
             }
             if (dto.isOwnCustom()) {
@@ -134,9 +121,31 @@ public class NotificationServiceImpl implements NotificationService {
         }
         // 5. Save notification
         Notification saved = notificationRepository.save(notification);
+
+
+
+        CreditOperationResult creditResult = creditService.checkAndDecrementCredit(
+                subscription.getId(),
+                creditCost,
+                saved.getId() // Notification ID not yet created
+        );
+        if (!creditResult.isSuccess()) {
+            log.warn("Insufficient credits for subscription {}: {}",
+                    subscription.getId(), creditResult.getMessage());
+            throw new InsufficientCreditsException(
+                    subscription.getId(),
+                    creditCost,
+                    creditResult.getRemainingCredits());
+        }
+        log.debug("Credits reserved for subscription {}, remaining: {}",
+                subscription.getId(), creditResult.getRemainingCredits());
+
+
         log.info("Notification {} created, sending to queue", saved.getId());
         // 6. Queue the notification
         NotificationMessage message = notificationMapper.toResponse(saved);
+
+
         rabbitTemplate.convertAndSend(
                 RabbitMqConfig.NOTIFICATION_EXCHANGE,
                 RabbitMqConfig.ROUTING_KEY,

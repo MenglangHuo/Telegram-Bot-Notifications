@@ -128,7 +128,7 @@ credit:
 # Slack Integration
 slack:
   enabled: true
-  webhook-url: ${SLACK_WEBHOOK_URL:https://hooks.slack.com/services/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}
+  webhook-url: ${SLACK_WEBHOOK_URL:https://hooks.slack.com/services/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}
   # Send async (non-blocking)
   async: ${SLACK_ASYNC:true}
   # Max retries

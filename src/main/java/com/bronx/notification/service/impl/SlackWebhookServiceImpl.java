@@ -33,9 +33,7 @@ public class SlackWebhookServiceImpl implements SlackWebhookService {
      */
     @Async("slackExecutor")
     public void sendNotificationToSlack(Notification notification) {
-        if (!isEnabled()) {
-            return;
-        }
+        if (!isEnabled()) return;
         try {
             Map<String, Object> payload = buildEnhancedSlackPayload(notification);
             sendWebhookAsync(payload).subscribe();
@@ -71,28 +69,6 @@ public class SlackWebhookServiceImpl implements SlackWebhookService {
         payload.put("text", message);
         sendWebhookAsync(payload).subscribe();
     }
-//    /**
-//     * Send custom message to Slack (sync)
-//     */
-//    public void sendMessageSync(String message) {
-//        if (!isEnabled()) {
-//            return;
-//        }
-//        Map<String, Object> payload = new HashMap<>();
-//        payload.put("text", message);
-//        sendWebhookSync(payload);
-//    }
-//    /**
-//     * Send custom message to Slack (reactive)
-//     */
-//    public Mono<Void> sendMessageReactive(String message) {
-//        if (!isEnabled()) {
-//            return Mono.empty();
-//        }
-//        Map<String, Object> payload = new HashMap<>();
-//        payload.put("text", message);
-//        return sendWebhookAsync(payload).then();
-//    }
 
     private boolean isEnabled() {
         if (!slackConfig.isEnabled() || slackConfig.getWebhookUrl() == null) {
@@ -104,56 +80,6 @@ public class SlackWebhookServiceImpl implements SlackWebhookService {
     /**
      * Build Slack payload from notification
      */
-    private Map<String, Object> buildSlackPayload(Notification notification) {
-        Map<String, Object> payload = new HashMap<>();
-        // Fallback text
-        payload.put("text", String.format("📬 Telegram notification sent to %s", notification.getChartId()));
-        // Build blocks for rich formatting
-        List<Map<String, Object>> blocks = new ArrayList<>();
-        // Header block
-        Map<String, Object> headerBlock = new HashMap<>();
-        headerBlock.put("type", "header");
-        Map<String, Object> headerText = new HashMap<>();
-        headerText.put("type", "plain_text");
-        headerText.put("text", "📬 Telegram Notification Sent");
-        headerText.put("emoji", true);
-        headerBlock.put("text", headerText);
-        blocks.add(headerBlock);
-        // Details section
-        Map<String, Object> sectionBlock = new HashMap<>();
-        sectionBlock.put("type", "section");
-        Map<String, Object> sectionText = new HashMap<>();
-        notification.getSubscription().getScope().getCompany().getName();
-        sectionText.put("type", "mrkdwn");
-        sectionText.put("text", String.format(
-                "*Bot:* `%s`\n*Chat ID:* `%s`\n*Type:* %s\n*Status:* %s",
-                notification.getBotUsername(),
-                notification.getChartId(),
-                notification.getType(),
-                notification.getStatus()));
-        sectionBlock.put("text", sectionText);
-        blocks.add(sectionBlock);
-        // Message preview (if available)
-        if (notification.getMessage() != null && !notification.getMessage().isEmpty()) {
-            Map<String, Object> messageBlock = new HashMap<>();
-            messageBlock.put("type", "section");
-            Map<String, Object> messageText = new HashMap<>();
-            messageText.put("type", "mrkdwn");
-            String preview = notification.getMessage().length() > 200
-                    ? notification.getMessage().substring(0, 200) + "..."
-                    : notification.getMessage();
-            messageText.put("text", String.format("*Message:*\n```%s```", preview));
-            messageBlock.put("text", messageText);
-            blocks.add(messageBlock);
-        }
-        // Divider
-        Map<String, Object> divider = new HashMap<>();
-        divider.put("type", "divider");
-        blocks.add(divider);
-        payload.put("blocks", blocks);
-        return payload;
-    }
-
     private Map<String, Object> buildEnhancedSlackPayload(Notification notification) {
         Map<String, Object> payload = new HashMap<>();
 

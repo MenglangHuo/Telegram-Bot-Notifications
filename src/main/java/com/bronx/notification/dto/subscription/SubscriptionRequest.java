@@ -9,6 +9,7 @@ public record SubscriptionRequest(
         Long orgUnitId,
         @NotNull
         Long planId,
+        String name,
         SubscriptionAction subscriptionAction,
         Instant startDate,
         Instant endDate

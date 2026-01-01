@@ -9,6 +9,8 @@ import java.util.concurrent.Executor;
 @Configuration
 @EnableAsync
 public class AsyncConfig {
+
+
     @Bean(name = "slackExecutor")
     public Executor slackExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -19,14 +21,14 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
-    @Bean(name = "taskExecutor")
-    public Executor taskExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(20);
-        executor.setQueueCapacity(500);
-        executor.setThreadNamePrefix("async-");
-        executor.initialize();
-        return executor;
-    }
+//    @Bean(name = "taskExecutor")
+//    public Executor taskExecutor() {
+//        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+//        executor.setCorePoolSize(5);
+//        executor.setMaxPoolSize(20);
+//        executor.setQueueCapacity(500);
+//        executor.setThreadNamePrefix("async-");
+//        executor.initialize();
+//        return executor;
+//    }
 }

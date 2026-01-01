@@ -24,16 +24,17 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class RedisCreditService implements CreditService {
     private final RedisTemplate<String, Long> creditRedisTemplate;
-//    private final RedisTemplate<String, Object> redisTemplate;
     private final DefaultRedisScript<Long> creditDecrementScript;
     private final DefaultRedisScript<Long> creditCheckScript;
     private final CreditConfig creditConfig;
     private final SubscriptionRepository subscriptionRepository;
     private final PendingCreditRepository pendingCreditRepository;
+
     /**
      * Credit key TTL - 24 hours (will be refreshed on access)
      */
-    private static final long CREDIT_KEY_TTL_HOURS = 24;
+    private static final long CREDIT_KEY_TTL_HOURS = 2;
+
     @Override
     public boolean hasCredits(Long subscriptionId, long amount) {
         long currentCredits = getCurrentCredits(subscriptionId);
