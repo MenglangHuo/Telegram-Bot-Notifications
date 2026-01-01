@@ -22,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -50,17 +52,15 @@ public class SubscriptionServiceImpl implements SubscriptionService {
              throw new DuplicateResourceException("Scope with this Plan already Exist already has an active subscription");
          }
 
+
         Subscription entity = mapper.toEntity(request);
         entity.setScope(scope);
         entity.setPlan(plan);
         entity.setStatus(SubscriptionStatus.ACTIVE);
         entity.setRemainingCredits(plan.getNotificationsCredit());
-
-        //validate durations
         int durationMonths=plan.getDurationMonths();
-        if(!isValidPeriod(request.startDate().toString(),request.endDate().toString(),durationMonths)){
-            throw new BusinessException("Invalid start date and end date with Plan");
-        }
+        Instant endDate= calculateEndDate(request.startDate().toString(),durationMonths);
+        entity.setEndDate(endDate);
 
         entity = subscriptionRepository.save(entity);
         saveHistory(entity, plan, SubscriptionAction.NEW);
@@ -82,10 +82,15 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         entity.setScope(scope);
         entity.setPlan(plan);
         entity.setRemainingCredits(plan.getNotificationsCredit()); //old + new credit
+
+        int durationMonths=plan.getDurationMonths();
+        Instant endDate= calculateEndDate(request.startDate().toString(),durationMonths);
+        entity.setEndDate(endDate);
+
         //validate durations
-        if(!isValidPeriod(request.startDate().toString(),request.endDate().toString(),plan.getDurationMonths())){
-            throw new BusinessException("Invalid start date and end date with Plan");
-        }
+//        if(!isValidPeriod(request.startDate().toString(),request.endDate().toString(),plan.getDurationMonths())){
+//            throw new BusinessException("Invalid start date and end date with Plan");
+//        }
         entity = subscriptionRepository.save(entity);
         saveHistory(entity, plan,request.subscriptionAction());
         return mapper.toResponse(entity);
@@ -124,10 +129,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription.setPlan(plan);
         subscription.setRemainingCredits(subscription.getRemainingCredits() +plan.getNotificationsCredit()); //old + new credit
 
-        //validate durations
-        if(!isValidPeriod(request.startDate().toString(),request.endDate().toString(),plan.getDurationMonths())){
-            throw new BusinessException("Invalid start date and end date with Plan");
-        }
+        int durationMonths=plan.getDurationMonths();
+        Instant endDate= calculateEndDate(request.startDate().toString(),durationMonths);
+        subscription.setEndDate(endDate);
+//        //validate durations
+//        if(!isValidPeriod(request.startDate().toString(),request.endDate().toString(),plan.getDurationMonths())){
+//            throw new BusinessException("Invalid start date and end date with Plan");
+//        }
 
         subscription = subscriptionRepository.save(subscription);
         saveHistory(subscription, plan, request.subscriptionAction());
@@ -161,7 +169,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         historyRepository.save(history);
     }
 
-    public boolean isValidPeriod(String startIso, String endIso, int minMonths) {
+    public boolean isValidPeriod(String startIso, String endIso, int durationMonths) {
         try {
             if (startIso == null || endIso == null) return false;
 
@@ -174,10 +182,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             }
 
             // 2. Duration check: end must be >= (start + minMonths)
-            ZonedDateTime requiredThreshold = start.plusMonths(minMonths);
+            ZonedDateTime requiredThreshold = start.plusMonths(durationMonths);
 
             if (end.isAfter(requiredThreshold)) {
-                log.warn("Validation failed: Duration is greater than {} months", minMonths);
+                log.warn("Validation failed: Duration is greater than {} months", durationMonths);
                 return false;
             }
             return true;
@@ -185,6 +193,21 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         } catch (DateTimeParseException e) {
             log.error("Invalid date format provided: start={}, end={}", startIso, endIso);
             return false;
+        }
+    }
+    private Instant calculateEndDate(String startIso, int durationMonths) {
+        try {
+            if (startIso == null) {
+                log.error("Start date cannot be null");
+                return null;
+            }
+
+            ZonedDateTime start = ZonedDateTime.parse(startIso);
+            return start.plusMonths(durationMonths).toInstant();
+
+        } catch (DateTimeParseException e) {
+            log.error("Invalid date format provided: start={}", startIso);
+            return null;
         }
     }
 }

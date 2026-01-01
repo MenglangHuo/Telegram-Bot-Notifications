@@ -11,6 +11,6 @@ public record SubscriptionRequest(
         Long planId,
         String name,
         SubscriptionAction subscriptionAction,
-        Instant startDate,
-        Instant endDate
+        Instant startDate
+//        Instant endDate
 ) {}

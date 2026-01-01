@@ -45,7 +45,6 @@ public class Subscription extends SoftDeletableAuditable<Long> {
     @Builder.Default
     private Boolean limitDurations=false;
 
-
     @Transient
     public boolean isValid() {
         if (status == SubscriptionStatus.CANCELLED ) return false;
